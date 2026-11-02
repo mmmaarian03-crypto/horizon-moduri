@@ -1,0 +1,62 @@
+[mod]
+id = "ecran_incarcare"
+version = "0.1.0"
+priority = 100
+
+[compatibility]
+horizon_revision = "142388e1c136e622652ec7505af15d8ad195e041"
+
+# Desenul ecranului (layout, text, logo) si adaptorul `Loading::ecran_incarcare_draw`.
+[[module]]
+id = "runtime"
+file = "crates/horizon-client/src/game.rs"
+name = "ecran_incarcare"
+source = "runtime.rs"
+
+# Contoarele constructiei de continut, citite de ecran: horizon_mods::ecran_incarcare (shared.rs).
+[[module]]
+id = "shared"
+file = "crates/horizon-mods/src/content.rs"
+name = "ecran_incarcare"
+source = "shared.rs"
+visibility = "pub"
+
+# Ecranul de incarcare: cat timp pachetul de interfata (atlasul) nu exista, jocul desena doar negru.
+# HEAD cancellable: cu atlas (gui) pornit, nu se atinge nimic si merge desenul vanilla.
+[[injection]]
+id = "draw"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::startup_menu::Loading::draw_menu"
+helper = "draw.rs"
+bindings = [
+  { name = "this", ty = "&mut crate::game::Loading", value = "&mut *self" },
+  { name = "batch", ty = "&mut horizon_client::hud::HudBatch", value = "&mut *batch" },
+]
+
+# `stamp` trece o data pe fiecare mod cu continut, inainte de constructie: totalul modurilor si al fisierelor.
+[[injection]]
+id = "source"
+kind = "HEAD"
+target = "horizon_mods::content::Content::source"
+helper = "source.rs"
+bindings = [{ name = "this", ty = "&Content", value = "self" }]
+
+# `build` citeste modurile pe rand: cel de acum si cate au inceput.
+[[injection]]
+id = "reader"
+kind = "HEAD"
+target = "horizon_mods::content::Content::reader"
+helper = "reader.rs"
+bindings = [{ name = "this", ty = "&Content", value = "self" }]
+
+# Fiecare tabel al jocului rescris (pe fire paralele): progresul primei jumatati.
+[[injection]]
+id = "write"
+kind = "HEAD"
+target = "horizon_client::mod_content::Overlay<'_>::write"
+helper = "write.rs"
+bindings = [
+  { name = "this", ty = "&Overlay<'_>", value = "self" },
+  { name = "rel", ty = "&str", value = "rel" },
+]

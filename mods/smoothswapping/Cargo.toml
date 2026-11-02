@@ -1,0 +1,9 @@
+[package]
+name = "horizon-smoothswapping"
+version = "0.1.0"
+edition = "2024"
+license = "LGPL-3.0-or-later"
+publish = false
+description = "Smooth Swapping for Horizon (native mod)"
+
+[dependencies]

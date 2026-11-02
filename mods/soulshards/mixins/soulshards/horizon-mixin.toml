@@ -1,0 +1,116 @@
+[mod]
+id = "soulshards"
+version = "0.1.0"
+priority = 100
+
+[compatibility]
+horizon_revision = "142388e1c136e622652ec7505af15d8ad195e041"
+
+[[module]]
+id = "runtime"
+file = "crates/horizon-client/src/game.rs"
+name = "soulshards"
+source = "runtime.rs"
+
+# What the game library's hooks need (horizon_client::soulshards): the mob that must drop no experience.
+[[module]]
+id = "shared"
+file = "crates/horizon-client/src/lib.rs"
+name = "soulshards"
+source = "shared.rs"
+visibility = "pub"
+
+# Right-click on a block: the Soul Shard altar (diamond on the glowstone), the shard on a spawner or a cage, the
+# shard taken out of a cage with Shift and empty hands.
+[[injection]]
+id = "use"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::copper_golems::Game<'_>::use_golem_statue"
+helper = "use.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "pos", ty = "[i32;3]", value = "pos" },
+]
+
+# LivingDeathEvent: before the death's loot and statistics (the killer is still in last_hurt_by_player).
+[[injection]]
+id = "died"
+kind = "HEAD"
+target = "horizon_client::game::creatures::Game<'_>::mob_died"
+helper = "died.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "m", ty = "&horizon_client::mobs::Mob", value = "m" },
+]
+
+# LivingExperienceDropEvent cancelled for cage-born mobs.
+[[injection]]
+id = "no-xp"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::mobs::drops::drops_experience"
+helper = "no_xp.rs"
+bindings = [
+  { name = "m", ty = "&Mob", value = "m" },
+]
+
+# AnvilUpdateEvent: before the anvil's own result (and before Easy Anvils', which always answers): priority 1000.
+[[injection]]
+id = "anvil"
+kind = "HEAD"
+cancellable = true
+priority = 1000
+target = "horizon_client::stations::anvil_result"
+helper = "anvil.rs"
+bindings = [
+  { name = "input", ty = "Option<&ItemStack>", value = "input" },
+  { name = "addition", ty = "Option<&ItemStack>", value = "addition" },
+]
+
+# The soul cages' block entity ticker.
+[[injection]]
+id = "tick"
+kind = "HEAD"
+target = "horizon_client::game::block_entity_ticks::Game<'_>::tick_block_entities"
+helper = "tick.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+# ItemSoulShard.appendHoverText (every item tooltip goes through stack_tooltip).
+[[injection]]
+id = "tooltip"
+kind = "RETURN"
+target = "horizon_client::game::stations::Game<'_>::stack_tooltip"
+helper = "tooltip.rs"
+bindings = [
+  { name = "value", ty = "Vec<(horizon_client::text::Text, u32)>", value = "$value" },
+  { name = "game", ty = "&crate::game::Game<'_>", value = "self" },
+  { name = "stack", ty = "&ItemStack", value = "stack" },
+]
+
+# The shard's binding, tier model and glint reach the window client (single player is a guest).
+[[injection]]
+id = "stack-net"
+kind = "RETURN"
+target = "horizon_client::lan::guest::stack_to_network"
+helper = "stack_net.rs"
+bindings = [
+  { name = "value", ty = "Option<Stack>", value = "$value" },
+  { name = "s", ty = "&Option<ItemStack>", value = "s" },
+]
+
+# Saving the world: the cages (their shards) are saved.
+[[injection]]
+id = "save"
+kind = "HEAD"
+target = "horizon_client::game::Game<'_>::save_game_metadata"
+helper = "save.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+# A world opens: forget the previous world's cages.
+[[injection]]
+id = "open"
+kind = "HEAD"
+target = "horizon_client::game::chat::Game<'_>::load_world_state"
+helper = "open.rs"
+bindings = []

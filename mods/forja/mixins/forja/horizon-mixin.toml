@@ -1,0 +1,318 @@
+# Forja ("Forge for Horizon"): the shared energy / fluid / item / machine-state API of the native
+# tech mods. Mods that call it (pipez, enderstorage...) need forja enabled in the same build.
+[mod]
+id = "forja"
+version = "0.1.0"
+priority = 100
+
+[compatibility]
+horizon_revision = "142388e1c136e622652ec7505af15d8ad195e041"
+
+# The API and its state (native/horizon.rs + src/lib.rs). It sits inside game::machines to use
+# the hopper code's container views as the item handler of every vanilla container.
+[[module]]
+id = "runtime"
+file = "crates/horizon-client/src/game/machines.rs"
+name = "forja"
+source = "runtime.rs"
+
+# `crate::game::forja`: the same API under a short path for every other mod.
+[[module]]
+id = "alias"
+file = "crates/horizon-client/src/game.rs"
+name = "forja"
+source = "alias.rs"
+
+# BlockItem.place's last step: a placed machine gets its state.
+[[injection]]
+id = "placed"
+kind = "HEAD"
+target = "horizon_client::game::advancements::Game<'_>::trigger_block"
+helper = "placed.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "name", ty = "&str", value = "name" },
+  { name = "pos", ty = "[i32; 3]", value = "pos" },
+]
+
+# Every tick, with the block entities: gone machines drop their items, machines tick.
+[[injection]]
+id = "tick"
+kind = "HEAD"
+target = "horizon_client::game::block_entity_ticks::Game<'_>::tick_block_entities"
+helper = "tick.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+]
+
+# The machine tables are written with the world (kit_state pattern, verified by torchmaster)...
+[[injection]]
+id = "save"
+kind = "HEAD"
+target = "horizon_client::game::Game<'_>::save_game_metadata"
+helper = "save.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+# ...and forgotten when another world opens (read again on first use).
+[[injection]]
+id = "open"
+kind = "HEAD"
+target = "horizon_client::game::chat::Game<'_>::load_world_state"
+helper = "open.rs"
+bindings = []
+
+# A machine screen over a vanilla container menu (ironchest's three screen hooks).
+[[injection]]
+id = "height"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::machines::Game<'_>::screen_height"
+helper = "height.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "self" },
+]
+
+[[injection]]
+id = "slot-position"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::machines::Game<'_>::machine_slot_position"
+helper = "slot_position.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "self" },
+  { name = "i", ty = "usize", value = "i" },
+]
+
+[[injection]]
+id = "draw"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::machines::Game<'_>::draw_machine_screen"
+helper = "draw.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "self" },
+  { name = "batch", ty = "&mut horizon_client::hud::HudBatch", value = "&mut *batch" },
+  { name = "ox", ty = "f32", value = "ox" },
+  { name = "oy", ty = "f32", value = "oy" },
+]
+
+# ---- compound blocks (multipart) and shapes from models ----
+
+# The library's tables: the mesher draws the parts, collisions and the outline read the shapes.
+[[module]]
+id = "shapes"
+file = "crates/horizon-client/src/mesher.rs"
+name = "forja_shapes"
+source = "shapes.rs"
+visibility = "pub"
+
+# The parts of compound blocks in the section meshes (composes with a_good_place's own HEAD).
+[[injection]]
+id = "mesh"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::mesher::Mesher<'_>::mesh"
+helper = "mesh.rs"
+bindings = [
+  { name = "this", ty = "&mut Mesher<'_>", value = "&mut *self" },
+  { name = "region", ty = "&[[Option<&Chunk>; 3]; 3]", value = "region" },
+  { name = "sy", ty = "i32", value = "sy" },
+]
+
+# Entities collide with the parts' boxes and with model shapes.
+[[injection]]
+id = "collide"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::collisions::<SceneCollisions<'_,'_> as BlockCollisionWorld>::context_shape"
+helper = "collide.rs"
+bindings = [
+  { name = "block", ty = "CollisionBlock", value = "block" },
+  { name = "p", ty = "BlockPos", value = "p" },
+]
+
+# The selection outline of the targeted part / model shape.
+[[injection]]
+id = "outline"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::gfx::outline_vertices"
+helper = "outline.rs"
+bindings = [
+  { name = "edges", ty = "&[[f64; 6]]", value = "edges" },
+  { name = "camera", ty = "glam::DVec3", value = "camera" },
+]
+
+# The crosshair (`BlockGetter.clip` with the parts' and models' boxes).
+[[injection]]
+id = "pick"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::Game<'_>::pick"
+helper = "pick.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "self" },
+]
+
+# Item.useOn of a part item (PartItem -> PartPlacement) and AE2's wrench (sneak + use).
+[[injection]]
+id = "use-part"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::tnt::Game<'_>::ignite_tnt"
+helper = "use_part.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "stack", ty = "&ItemStack", value = "stack" },
+]
+
+# Mining a compound block.
+[[injection]]
+id = "break-part"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::Game<'_>::break_block"
+helper = "break_part.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "pos", ty = "[i32; 3]", value = "pos" },
+]
+
+# ---- mod networking ("Rețea mod") and forja menus for guests ----
+
+# The library's queues of forja's frames (the hub's inboxes, the client's received events).
+[[module]]
+id = "net"
+file = "crates/horizon-client/src/lib.rs"
+name = "forja_net"
+source = "net_lib.rs"
+visibility = "pub"
+
+# Server: the forja frames leave each guest's inbox before the hub hands it to the game (whose
+# packet function `lan_guest_packet` has macros: it cannot be hooked, and drops unknown payloads).
+[[injection]]
+id = "net-inbox"
+kind = "HEAD"
+target = "horizon_client::lan::hub::Hub::tick_level"
+helper = "inbox.rs"
+bindings = [{ name = "hub", ty = "&mut Hub", value = "&mut *self" }]
+
+# Server: every tick_lan pass with the hub in hand (paused or not): hello, the frames, the menus.
+[[injection]]
+id = "net-server"
+kind = "HEAD"
+target = "horizon_client::game::lan_actions::Game<'_>::lan_living_flags"
+helper = "server_net.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "host", ty = "&mut crate::game::lan::LanHost", value = "&mut *host" },
+]
+
+# Server: a container a guest's turn opened becomes a forja menu (before ironchest's own hook).
+[[injection]]
+id = "net-lan-open"
+kind = "HEAD"
+cancellable = true
+priority = 200
+target = "horizon_client::game::lan_actions::Game<'_>::lan_open_container"
+helper = "lan_open.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "host", ty = "&mut crate::game::lan::LanHost", value = "&mut *host" },
+  { name = "conn", ty = "u32", value = "conn" },
+  { name = "pos", ty = "(i32, i32, i32)", value = "pos" },
+]
+
+# Client: the forja frames leave the received events (RETURN: the poll body is one expression).
+[[injection]]
+id = "net-poll"
+kind = "RETURN"
+target = "horizon_client::net::Session::poll"
+helper = "poll.rs"
+bindings = [{ name = "value", ty = "Vec<Event>", value = "$value" }]
+
+# Client: every tick, the frames are applied (menus open, slots, machine, sections, close).
+[[injection]]
+id = "net-client"
+kind = "HEAD"
+target = "horizon_client::game::remote::Game<'_>::tick_remote"
+helper = "client_net.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+# Client: a guest menu's clicks go to the server, before any mod's own menu_ops hook.
+[[injection]]
+id = "net-menu-ops"
+kind = "HEAD"
+cancellable = true
+priority = 300
+target = "horizon_client::game::Game<'_>::menu_ops"
+helper = "menu_ops.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "ops", ty = "&[(Option<usize>, i32, horizon_client::menu::Input)]", value = "ops" },
+]
+
+# Client: closing the window closes the guest menu on the server.
+[[injection]]
+id = "net-close"
+kind = "HEAD"
+priority = 300
+target = "horizon_client::game::Game<'_>::close_container"
+helper = "close.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+# ---- redstone ("Redstone") ----
+
+# The one per-position call out of Horizon's (generic, unhookable) signal code: the signal of a
+# TrappedChest/Jukebox-class source (weak on every side, strong only downwards).
+[[injection]]
+id = "signal"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::<GameLevel<'_> as LevelAccess>::block_entity_signal"
+helper = "signal.rs"
+bindings = [
+  { name = "level", ty = "&GameLevel<'_>", value = "self" },
+  { name = "pos", ty = "BlockPos", value = "pos" },
+  { name = "direction", ty = "Direction", value = "_direction" },
+]
+
+# Client: the game's own remote clicks (mouse tweaks, sorting) bypass menu_ops on a server.
+[[injection]]
+id = "net-remote-ops"
+kind = "HEAD"
+cancellable = true
+priority = 300
+target = "horizon_client::game::remote::Game<'_>::remote_menu_ops"
+helper = "remote_ops.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "ops", ty = "&[(Option<usize>, i32, Input)]", value = "ops" },
+]
+
+# Client: a Shift double click (the remote path would guess it on the inventory menu).
+[[injection]]
+id = "net-quick-all"
+kind = "HEAD"
+cancellable = true
+priority = 300
+target = "horizon_client::game::remote::Game<'_>::remote_quick_move_all"
+helper = "quick_all.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "slot", ty = "usize", value = "slot" },
+]
+
+# Item stacks on the wire carry `minecraft:custom_data`, as vanilla's ItemStack.STREAM_CODEC does (the component is
+# network-synchronised): a guest's client (single player's window included) sees the data a mod keeps on a stack (a
+# compass' state for its HUD), and a creative client's SetCreativeModeSlot keeps it. Horizon's stack_to_network
+# leaves it out. RETURN on the public entry (network_stack itself has `?`, refused for RETURN).
+[[injection]]
+id = "stack-custom-data"
+kind = "RETURN"
+target = "horizon_client::lan::guest::stack_to_network"
+helper = "stack_custom_data.rs"
+bindings = [
+  { name = "value", ty = "Option<Stack>", value = "$value" },
+  { name = "s", ty = "&Option<ItemStack>", value = "s" },
+]

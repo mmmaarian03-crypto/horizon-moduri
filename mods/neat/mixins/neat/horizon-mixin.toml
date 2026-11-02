@@ -1,0 +1,49 @@
+[mod]
+id = "neat"
+version = "0.1.0"
+priority = 100
+
+[compatibility]
+horizon_revision = "142388e1c136e622652ec7505af15d8ad195e041"
+
+[[module]]
+id = "runtime"
+file = "crates/horizon-client/src/game.rs"
+name = "neat"
+source = "runtime.rs"
+
+# Options > Mods lists the mod (and turns it off), with the original's toggle key.
+[[injection]]
+id = "list"
+kind = "HEAD"
+target = "horizon_client::game::native_hooks::Game<'_>::native_mods"
+helper = "list.rs"
+bindings = [
+  { name = "mods", ty = "&mut Vec<crate::game::native_hooks::NativeMod>", value = "&mut *mods" },
+]
+
+# The toggle key (`neat.keybind.toggle`, unbound by default).
+[[injection]]
+id = "key"
+kind = "HEAD"
+target = "horizon_client::game::native_hooks::Game<'_>::native_key"
+helper = "key.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" },
+  { name = "key", ty = "&str", value = "key" },
+  { name = "pressed", ty = "bool", value = "pressed" },
+]
+
+# The plates go into the frame's entity vertices, where Horizon puts its name tags (the original adds
+# them as each entity is rendered, LevelRenderer.renderEntity).
+[[injection]]
+id = "plates"
+kind = "HEAD"
+target = "horizon_client::game::names::Game<'_>::name_tag_geometry"
+helper = "plates.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "self" },
+  { name = "camera", ty = "glam::DVec3", value = "camera" },
+  { name = "alpha", ty = "f64", value = "alpha" },
+  { name = "out", ty = "&mut Vec<horizon_client::mesher::Vertex>", value = "&mut *out" },
+]

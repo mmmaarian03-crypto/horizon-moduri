@@ -1,0 +1,12 @@
+[package]
+name = "horizon-ae2"
+version = "0.1.0"
+edition = "2024"
+license = "LGPL-3.0-only"
+publish = false
+description = "Applied Energistics 2 for Horizon (native mod)"
+
+[dependencies]
+
+[dev-dependencies]
+horizon-forja = { path = "../forja" }

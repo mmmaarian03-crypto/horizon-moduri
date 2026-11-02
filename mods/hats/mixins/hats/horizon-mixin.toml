@@ -1,0 +1,181 @@
+[mod]
+id = "hats"
+version = "0.1.0"
+priority = 100
+
+[compatibility]
+horizon_revision = "142388e1c136e622652ec7505af15d8ad195e041"
+
+[[module]]
+id = "runtime"
+file = "crates/horizon-client/src/game.rs"
+name = "hats"
+source = "runtime.rs"
+
+# ---- the world's side (the integrated server's Game, or a world in the frame)
+
+# Every world tick: assignMobHat for the mobs (published for the window), HatEntity.tick for the thrown hats.
+[[injection]]
+id = "tick"
+kind = "HEAD"
+target = "horizon_client::game::creatures::Game<'_>::tick_creatures"
+helper = "tick.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+# LivingDeathEvent: the hat leaves the mob; killed by a player, it is unlocked (onPlayerPickupHat).
+[[injection]]
+id = "died"
+kind = "HEAD"
+target = "horizon_client::game::creatures::Game<'_>::mob_died"
+helper = "died.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "m", ty = "&horizon_client::mobs::Mob", value = "m" },
+]
+
+# Item.use of the Hat Launcher (PacketLaunchHat on the server).
+[[injection]]
+id = "launch"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::creatures::Game<'_>::throw_item"
+helper = "launch.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "stack", ty = "&horizon_client::items::ItemStack", value = "stack" },
+]
+
+# HatsSavedData is saved with the world and forgotten when another opens.
+[[injection]]
+id = "save"
+kind = "HEAD"
+target = "horizon_client::game::Game<'_>::save_game_metadata"
+helper = "save.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[injection]]
+id = "open"
+kind = "HEAD"
+target = "horizon_client::game::chat::Game<'_>::load_world_state"
+helper = "open.rs"
+bindings = []
+
+# ---- the window's side
+
+# LayerHat: every drawn mob and player (the per-mob world geometry, as tools_on_my_back).
+[[injection]]
+id = "heads"
+kind = "HEAD"
+target = "horizon_client::game::mob_blocks::Game<'_>::mob_block_geometry"
+helper = "heads.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "self" },
+  { name = "mob", ty = "&horizon_client::mobs::Mob", value = "mob" },
+  { name = "camera", ty = "glam::DVec3", value = "camera" },
+  { name = "alpha", ty = "f64", value = "alpha" },
+  { name = "light", ty = "u32", value = "light" },
+  { name = "out", ty = "&mut Vec<horizon_client::mesher::Vertex>", value = "&mut *out" },
+]
+
+# HatEntityRenderer: world geometry with the partial tick (as neat).
+[[injection]]
+id = "thrown"
+kind = "HEAD"
+target = "horizon_client::game::names::Game<'_>::name_tag_geometry"
+helper = "thrown.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "self" },
+  { name = "camera", ty = "glam::DVec3", value = "camera" },
+  { name = "alpha", ty = "f64", value = "alpha" },
+  { name = "out", ty = "&mut Vec<horizon_client::mesher::Vertex>", value = "&mut *out" },
+]
+
+# A right click that reached Item.use on the window: picking up a thrown hat, the launcher's screen.
+[[injection]]
+id = "use-hands"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::remote::Game<'_>::remote_use_hands"
+helper = "use_hands.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+# Every HUD frame before the screens (toasts taken, their sounds, hit particles, the menu's end).
+[[injection]]
+id = "frame"
+kind = "HEAD"
+target = "horizon_client::game::scoreboard::Game<'_>::draw_tab_list"
+helper = "frame.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+# The HUD's last layer: HatToast.
+[[injection]]
+id = "toasts"
+kind = "HEAD"
+target = "horizon_client::game::remote::Game<'_>::remote_hud"
+helper = "toasts.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" },
+  { name = "batch", ty = "&mut horizon_client::hud::HudBatch", value = "&mut *batch" },
+]
+
+# Options > Mods lists the mod and its key; the key opens the menu.
+[[injection]]
+id = "list"
+kind = "HEAD"
+target = "horizon_client::game::native_hooks::Game<'_>::native_mods"
+helper = "list.rs"
+bindings = [{ name = "mods", ty = "&mut Vec<crate::game::native_hooks::NativeMod>", value = "&mut *mods" }]
+
+[[injection]]
+id = "key"
+kind = "HEAD"
+target = "horizon_client::game::native_hooks::Game<'_>::native_key"
+helper = "key.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "key", ty = "&str", value = "key" },
+  { name = "pressed", ty = "bool", value = "pressed" },
+]
+
+# HatsScreen on the Advancements screen (TRADUCATOR 2.24).
+[[injection]]
+id = "menu-draw"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::advancements_screen::Game<'_>::draw_advancements"
+helper = "menu_draw.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "batch", ty = "&mut horizon_client::hud::HudBatch", value = "&mut *batch" },
+]
+
+[[injection]]
+id = "menu-mouse"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::advancements_screen::Game<'_>::advancements_mouse"
+helper = "menu_mouse.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "pressed", ty = "bool", value = "pressed" },
+  { name = "size", ty = "[u32; 2]", value = "size" },
+]
+
+[[injection]]
+id = "menu-scroll"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::advancements_screen::Game<'_>::advancements_scroll"
+helper = "menu_scroll.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "y", ty = "f32", value = "y" },
+]
+
+[[injection]]
+id = "menu-drag"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::advancements_screen::Game<'_>::advancements_drag"
+helper = "menu_drag.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]

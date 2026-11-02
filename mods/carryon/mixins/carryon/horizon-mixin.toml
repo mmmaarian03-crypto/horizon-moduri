@@ -1,0 +1,104 @@
+[mod]
+id = "carryon"
+version = "0.1.0"
+priority = 100
+
+[compatibility]
+horizon_revision = "142388e1c136e622652ec7505af15d8ad195e041"
+
+[[module]]
+id = "runtime"
+file = "crates/horizon-client/src/game.rs"
+name = "carryon"
+source = "runtime.rs"
+
+# Options > Mods lists the mod with the carry key (neat, appleskin).
+[[injection]]
+id = "list"
+kind = "HEAD"
+target = "horizon_client::game::native_hooks::Game<'_>::native_mods"
+helper = "list.rs"
+bindings = [
+  { name = "mods", ty = "&mut Vec<crate::game::native_hooks::NativeMod>", value = "&mut *mods" },
+]
+
+# RightClickBlock: the first plain block use in use_hand, reached with empty hands also when sneaking (mcwwindows, torchmaster).
+[[injection]]
+id = "use"
+kind = "HEAD"
+cancellable = true
+priority = 1000
+target = "horizon_client::game::copper_golems::Game<'_>::use_golem_statue"
+helper = "use.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "pos", ty = "[i32;3]", value = "pos" },
+]
+
+# EntityInteract: use_item_as_player asks interact_entity first (probed OK; interact_mob has a macro).
+[[injection]]
+id = "interact"
+kind = "HEAD"
+cancellable = true
+priority = 1000
+target = "horizon_client::game::Game<'_>::interact_entity"
+helper = "interact.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+# onCarryTick of the in-frame host (escape_rope, morebows).
+[[injection]]
+id = "tick"
+kind = "HEAD"
+target = "horizon_client::game::Game<'_>::tick_blocks"
+helper = "tick.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+# onCarryTick of every guest on the server (single player's window is one since #1514), and the sync of what it carries to
+# its client (forja channel carryon:sync): the guests' tick, not while single player is paused.
+[[injection]]
+id = "guests-tick"
+kind = "HEAD"
+target = "horizon_client::game::lan_actions::Game<'_>::tick_guests"
+helper = "guests_tick.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "host", ty = "&mut crate::game::lan::LanHost", value = "&mut *host" },
+]
+
+# A server's client (every Game runs it, the window too): what its server says it carries, its carry key to the server.
+[[injection]]
+id = "client-tick"
+kind = "HEAD"
+target = "horizon_client::game::native_hooks::Game<'_>::native_tick"
+helper = "client_tick.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+# AttackEntityEvent / BreakSpeed: no hitting while carrying (probed OK).
+[[injection]]
+id = "attack"
+kind = "HEAD"
+cancellable = true
+priority = 1000
+target = "horizon_client::game::Game<'_>::attack"
+helper = "attack.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[injection]]
+id = "mining"
+kind = "HEAD"
+cancellable = true
+priority = 1000
+target = "horizon_client::game::Game<'_>::tick_mining"
+helper = "mining.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+# The HUD line over the bars (appleskin).
+[[injection]]
+id = "hud"
+kind = "HEAD"
+target = "horizon_client::game::titles::Game<'_>::draw_selected_name"
+helper = "hud.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "self" },
+  { name = "batch", ty = "&mut horizon_client::hud::HudBatch", value = "&mut *batch" },
+]

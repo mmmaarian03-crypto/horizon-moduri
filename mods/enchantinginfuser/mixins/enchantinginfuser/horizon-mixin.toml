@@ -1,0 +1,345 @@
+[mod]
+id = "enchantinginfuser"
+version = "0.1.0"
+priority = 100
+
+[compatibility]
+horizon_revision = "142388e1c136e622652ec7505af15d8ad195e041"
+
+# The rules and the game side (native/horizon.rs + src/lib.rs). Uses forja (its guest menus): verify with
+# `tools/hnmod.py forja enchantinginfuser`.
+[[module]]
+id = "runtime"
+file = "crates/horizon-client/src/game.rs"
+name = "enchantinginfuser"
+source = "runtime.rs"
+
+# The library's side (`horizon_client::enchantinginfuser`): which states are infusers.
+[[module]]
+id = "shared"
+file = "crates/horizon-client/src/lib.rs"
+name = "enchantinginfuser"
+source = "shared.rs"
+visibility = "pub"
+
+# BlockItem.place's last step: the infuser's one slot and the item's name on it.
+[[injection]]
+id = "placed"
+kind = "HEAD"
+target = "horizon_client::game::advancements::Game<'_>::trigger_block"
+helper = "placed.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "name", ty = "&str", value = "name" },
+  { name = "pos", ty = "[i32; 3]", value = "pos" },
+  { name = "stack", ty = "&horizon_client::items::ItemStack", value = "stack" },
+]
+
+# InfuserBlock.use: open_menu reaches open_station for a block the game's block entities do not know.
+[[injection]]
+id = "open"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::stations::Game<'_>::open_station"
+helper = "open.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "pos", ty = "[i32; 3]", value = "pos" },
+  { name = "name", ty = "&str", value = "name" },
+]
+
+# A guest opened an infuser (single player's window is one): the forja menu.
+[[injection]]
+id = "lan-open"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::lan_actions::Game<'_>::lan_open_container"
+helper = "lan_open.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "host", ty = "&mut crate::game::lan::LanHost", value = "&mut *host" },
+  { name = "conn", ty = "u32", value = "conn" },
+  { name = "pos", ty = "(i32, i32, i32)", value = "pos" },
+]
+
+# The menu's slot clicks: the chest menu engine over the one slot (Slot.getMaxStackSize = 1).
+[[injection]]
+id = "menu-ops"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::Game<'_>::menu_ops"
+helper = "menu_ops.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "ops", ty = "&[(Option<usize>, i32, horizon_client::menu::Input)]", value = "ops" },
+]
+
+[[injection]]
+id = "drag-view"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::Game<'_>::drag_view"
+helper = "drag_view.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+]
+
+[[injection]]
+id = "drag-accepts"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::Game<'_>::quick_craft_accepts"
+helper = "drag_accepts.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "slot", ty = "usize", value = "slot" },
+  { name = "ty", ty = "i32", value = "ty" },
+  { name = "dragged", ty = "usize", value = "dragged" },
+]
+
+# InfuserScreen's size (220 x 185), slots and background.
+[[injection]]
+id = "origin"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::Game<'_>::inventory_origin"
+helper = "origin.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "self" },
+  { name = "batch", ty = "&horizon_client::hud::HudBatch", value = "batch" },
+]
+
+[[injection]]
+id = "height"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::machines::Game<'_>::screen_height"
+helper = "height.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "self" },
+]
+
+[[injection]]
+id = "image"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::Game<'_>::container_image"
+helper = "image.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "self" },
+  { name = "batch", ty = "&horizon_client::hud::HudBatch", value = "batch" },
+]
+
+[[injection]]
+id = "slot-position"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::machines::Game<'_>::machine_slot_position"
+helper = "slot_position.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "self" },
+  { name = "i", ty = "usize", value = "i" },
+]
+
+[[injection]]
+id = "draw"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::machines::Game<'_>::draw_machine_screen"
+helper = "draw.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "self" },
+  { name = "batch", ty = "&mut horizon_client::hud::HudBatch", value = "&mut *batch" },
+  { name = "ox", ty = "f32", value = "ox" },
+  { name = "oy", ty = "f32", value = "oy" },
+]
+
+# The list, the buttons, the costs, the power and the tooltips: over the slots, under the carried stack.
+[[injection]]
+id = "draw-over"
+kind = "HEAD"
+target = "horizon_client::game::Game<'_>::draw_carried"
+helper = "draw_over.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" },
+  { name = "batch", ty = "&mut horizon_client::hud::HudBatch", value = "&mut *batch" },
+]
+
+# The level, enchant and repair buttons and the scrollbar (every press stops here first).
+[[injection]]
+id = "mouse"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::tweaks::Game<'_>::sort_mouse_press"
+helper = "mouse.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "button", ty = "winit::event::MouseButton", value = "button" },
+]
+
+[[injection]]
+id = "wheel"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::tweaks::Game<'_>::tweak_scroll"
+helper = "wheel.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "delta", ty = "f32", value = "delta" },
+]
+
+[[injection]]
+id = "drag"
+kind = "HEAD"
+target = "horizon_client::game::Game<'_>::inventory_drag_move"
+helper = "drag.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[injection]]
+id = "release"
+kind = "HEAD"
+target = "horizon_client::game::Game<'_>::inventory_mouse_release"
+helper = "release.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+# Each tick: the menu kind is registered, the open infuser keeps its slot.
+[[injection]]
+id = "tick"
+kind = "HEAD"
+target = "horizon_client::game::storage::Game<'_>::tick_container_reach"
+helper = "tick.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+# Hoppers: in only into an empty slot, out only an enchanted item (InfuserBlockEntity, WorldlyContainer).
+[[injection]]
+id = "move-in"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::machines::Game<'_>::try_move_in_item"
+helper = "move_in.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "view", ty = "&View", value = "view" },
+  { name = "stack", ty = "&ItemStack", value = "&stack" },
+  { name = "slot", ty = "usize", value = "slot" },
+]
+
+[[injection]]
+id = "take-one"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::machines::Game<'_>::take_one"
+helper = "take_one.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" },
+  { name = "view", ty = "&View", value = "view" },
+  { name = "slot", ty = "usize", value = "slot" },
+]
+
+# Saving: the block entity under the block's own id, one slot read back.
+[[injection]]
+id = "save-id"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::save::block_entity_id"
+helper = "save_id.rs"
+bindings = [
+  { name = "e", ty = "&crate::containers::BlockEntity", value = "e" },
+  { name = "block", ty = "&str", value = "block" },
+]
+
+[[injection]]
+id = "save-load"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::save::decode_block_entity"
+helper = "save_load.rs"
+bindings = [
+  { name = "tag", ty = "&Tag", value = "tag" },
+]
+
+# InfuserBlock.onRemove: the item drops.
+[[injection]]
+id = "pre-remove"
+kind = "HEAD"
+cancellable = true
+target = "horizon_world::level::removal::pre_remove"
+helper = "pre_remove.rs"
+bindings = [
+  { name = "name", ty = "&str", value = "name" },
+]
+
+# The floating book (InfuserRenderer, bookAnimationTick): the enchanting table's.
+[[injection]]
+id = "render-index"
+kind = "HEAD"
+target = "horizon_client::block_entity_render::BlockEntityRenderer::new"
+helper = "render_index.rs"
+bindings = [
+  { name = "registry", ty = "&BlockRegistry", value = "registry" },
+]
+
+[[injection]]
+id = "render-kind"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::block_entity_render::BlockEntityRenderer::kind"
+helper = "render_kind.rs"
+bindings = [
+  { name = "this", ty = "&BlockEntityRenderer", value = "self" },
+  { name = "state", ty = "u32", value = "state" },
+]
+
+[[injection]]
+id = "anim-index"
+kind = "HEAD"
+target = "horizon_client::block_entity_anim::BlockEntityAnims::classify"
+helper = "anim_index.rs"
+bindings = [
+  { name = "registry", ty = "&horizon_world::registry::BlockRegistry", value = "registry" },
+]
+
+[[injection]]
+id = "anim-ticker"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::block_entity_anim::BlockEntityAnims::ticker"
+helper = "anim_ticker.rs"
+bindings = [
+  { name = "state", ty = "u32", value = "state" },
+]
+
+# InfuserBlock.appendHoverText (the container lines' place).
+[[injection]]
+id = "tooltip"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::item_tooltip::container_lines"
+helper = "tooltip.rs"
+bindings = [
+  { name = "stack", ty = "&crate::items::ItemStack", value = "stack" },
+  { name = "translate", ty = "&dyn Fn(&str) -> Option<String>", value = "translate" },
+]
+
+# InfuserItemRenderer: the item turning over the open book (drawn with the campfires' items).
+[[injection]]
+id = "floating"
+kind = "HEAD"
+target = "horizon_client::game::campfire::Game<'_>::campfire_geometry"
+helper = "floating.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "self" },
+  { name = "camera", ty = "glam::DVec3", value = "camera" },
+  { name = "out", ty = "&mut Vec<horizon_client::mesher::Vertex>", value = "&mut *out" },
+]
+
+# InfuserBlock.animateTick (super): the enchanting table's glyph particles from the bookshelves.
+[[injection]]
+id = "animate"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::animate_tick::classify"
+helper = "animate.rs"
+bindings = [
+  { name = "name", ty = "&str", value = "name" },
+]

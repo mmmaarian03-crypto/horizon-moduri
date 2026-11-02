@@ -1,0 +1,9 @@
+[package]
+name = "horizon-enchdesc"
+version = "0.1.0"
+edition = "2024"
+license = "LGPL-2.1-only"
+publish = false
+description = "Enchantment Descriptions for Horizon (native mod)"
+
+[dependencies]

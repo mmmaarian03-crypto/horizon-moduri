@@ -1,0 +1,101 @@
+[mod]
+id = "advancednetherite"
+version = "0.1.0"
+priority = 100
+
+[compatibility]
+horizon_revision = "142388e1c136e622652ec7505af15d8ad195e041"
+
+# The game's side: armor perks, extra drops.
+[[module]]
+id = "runtime"
+file = "crates/horizon-client/src/game.rs"
+name = "advancednetherite"
+source = "runtime.rs"
+
+# The content root's side: the items' numbers (items_runtime.rs, made by tools/bundle_items.py).
+[[module]]
+id = "items"
+file = "crates/horizon-client/src/mod_content.rs"
+name = "advancednetherite"
+source = "items_runtime.rs"
+
+# The items.json entries of the mod's items get the original's durability, defence,
+# damage, speed multipliers... (ModToolTiers, ModArmorTiers, ModItems).
+[[injection]]
+id = "item-numbers"
+kind = "RETURN"
+target = "horizon_client::mod_content::Plan<'_>::items"
+helper = "items.rs"
+bindings = [
+  { name = "value", ty = "()", value = "$value" },
+  { name = "map", ty = "&mut J", value = "&mut *map" },
+  { name = "components", ty = "bool", value = "components" },
+]
+
+# Phantoms and endermen are marked when the player wears a piece with the perk.
+[[injection]]
+id = "mark"
+kind = "HEAD"
+target = "horizon_client::game::creatures::Game<'_>::tick_creatures"
+helper = "mark.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+# Marked endermen are not provoked by the player's stare.
+[[injection]]
+id = "enderman"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::mobs::enderman::stared_at"
+helper = "enderman.rs"
+bindings = [{ name = "m", ty = "&Mob", value = "m" }]
+
+# Marked phantoms do not pick the player as a target, nor keep one.
+[[injection]]
+id = "phantom-target"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::mobs::phantom::<AttackPlayerTarget as Goal>::can_use"
+helper = "phantom.rs"
+bindings = [{ name = "m", ty = "&mut Mob", value = "&mut *m" }]
+
+[[injection]]
+id = "phantom-continue"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::mobs::phantom::<AttackPlayerTarget as Goal>::can_continue"
+helper = "phantom.rs"
+bindings = [{ name = "m", ty = "&mut Mob", value = "&mut *m" }]
+
+# Piglins: the armor counts as golden armor.
+[[injection]]
+id = "piglins"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::piglins::Game<'_>::wearing_gold"
+helper = "piglins.rs"
+bindings = [{ name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }]
+
+# CropDropsLootModifier and OreDropsLootModifier.
+[[injection]]
+id = "loot"
+kind = "RETURN"
+target = "horizon_client::game::Game<'_>::block_loot_at"
+helper = "loot.rs"
+bindings = [
+  { name = "value", ty = "Vec<ItemStack>", value = "$value" },
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "state", ty = "BlockStateId", value = "state" },
+  { name = "held", ty = "Option<&ItemStack>", value = "held" },
+]
+
+# MobDropsLootModifier (a mob that died: its drops are spawned right after).
+[[injection]]
+id = "mob-drops"
+kind = "HEAD"
+target = "horizon_client::game::creatures::Game<'_>::mob_died"
+helper = "mob_drops.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "m", ty = "&Mob", value = "m" },
+]

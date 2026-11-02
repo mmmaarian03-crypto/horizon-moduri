@@ -1,0 +1,42 @@
+[mod]
+id = "enderore"
+version = "0.1.0"
+priority = 100
+
+[compatibility]
+horizon_revision = "142388e1c136e622652ec7505af15d8ad195e041"
+
+# The game's side: the experience of the ores.
+[[module]]
+id = "runtime"
+file = "crates/horizon-client/src/game.rs"
+name = "enderore"
+source = "runtime.rs"
+
+# The ores in the generation (worldgen_runtime.rs; tools/bundle_extra.py makes it).
+[[module]]
+id = "worldgen"
+file = "crates/horizon-world/src/worldgen/generator.rs"
+name = "enderore"
+source = "worldgen_runtime.rs"
+
+# DropExperienceBlock's 2 to 5 experience: the game's table of block experience, asked for a player's
+# break with the right tool and without Silk Touch.
+[[injection]]
+id = "experience"
+kind = "RETURN"
+target = "horizon_client::game::Game<'_>::block_experience"
+helper = "experience.rs"
+bindings = [
+  { name = "value", ty = "u32", value = "$value" },
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "name", ty = "&str", value = "name" },
+]
+
+# forge:add_features (biome modifiers) of the two ores: the text of the biomes.
+[[injection]]
+id = "biomes"
+kind = "RETURN"
+target = "horizon_world::worldgen::generator::GeneratorData::biome_json"
+helper = "biomes.rs"
+bindings = [{ name = "value", ty = "&str", value = "$value" }]

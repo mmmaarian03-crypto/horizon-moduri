@@ -1,0 +1,13 @@
+[package]
+name = "horizon-enderstorage"
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+publish = false
+description = "EnderStorage for Horizon (native mod)"
+
+[dependencies]
+
+[dev-dependencies]
+# The tests check the tank against forja's FluidTank (the game reaches the tank through forja).
+horizon-forja = { path = "../forja" }

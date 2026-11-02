@@ -1,0 +1,90 @@
+[mod]
+id = "mousetweaks"
+version = "0.1.0"
+priority = 100
+
+[compatibility]
+horizon_revision = "142388e1c136e622652ec7505af15d8ad195e041"
+
+[[module]]
+id = "runtime"
+file = "crates/horizon-client/src/game.rs"
+name = "mousetweaks"
+source = "runtime.rs"
+
+# Options > Mods lists the mod (and turns it off).
+[[injection]]
+id = "list"
+kind = "HEAD"
+target = "horizon_client::game::native_hooks::Game<'_>::native_mods"
+helper = "list.rs"
+bindings = [
+  { name = "mods", ty = "&mut Vec<crate::game::native_hooks::NativeMod>", value = "&mut *mods" },
+]
+
+# A mouse press over a container screen (Forge's MouseButtonPressed.Pre): the game asks this first for every press,
+# before the click itself is made (`sort_mouse_press`, a call of the main window handler).
+[[injection]]
+id = "press"
+kind = "HEAD"
+target = "horizon_client::game::tweaks::Game<'_>::sort_mouse_press"
+helper = "press.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "button", ty = "winit::event::MouseButton", value = "button" },
+]
+
+# The cursor moved over an inventory screen (MouseDragged.Pre; the rules ignore it unless a button is down).
+[[injection]]
+id = "drag"
+kind = "HEAD"
+target = "horizon_client::game::Game<'_>::inventory_drag_move"
+helper = "drag.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+]
+
+# Horizon's own extras drag, which `inventory_drag_move` calls after this mod's: not with this mod on.
+[[injection]]
+id = "extras-drag"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::tweaks::Game<'_>::tweak_drag_move"
+helper = "extras-drag.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" },
+]
+
+# The wheel over an inventory screen (MouseScrolled.Post).
+[[injection]]
+id = "scroll"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::tweaks::Game<'_>::tweak_scroll"
+helper = "scroll.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "delta", ty = "f32", value = "delta" },
+  { name = "slot", ty = "Option<usize>", value = "slot" },
+]
+
+# A mouse button went up over an inventory screen (MouseButtonReleased.Pre).
+[[injection]]
+id = "release"
+kind = "HEAD"
+target = "horizon_client::game::Game<'_>::inventory_mouse_release"
+helper = "release.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "right", ty = "bool", value = "right" },
+]
+
+# The container screen closed: the next one is a new screen (`updateScreen`).
+[[injection]]
+id = "close"
+kind = "HEAD"
+target = "horizon_client::game::Game<'_>::close_container"
+helper = "close.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+]

@@ -1,0 +1,136 @@
+[mod]
+id = "morebows"
+version = "0.1.0"
+priority = 100
+
+[compatibility]
+horizon_revision = "142388e1c136e622652ec7505af15d8ad195e041"
+
+# The game's side: the bows' draw, shot and arrows.
+[[module]]
+id = "runtime"
+file = "crates/horizon-client/src/game.rs"
+name = "morebows"
+source = "runtime.rs"
+
+# The content root's side: the bows' durability, repair materials and fire resistance (items_runtime.rs;
+# tools/bundle_extra.py makes it).
+[[module]]
+id = "items"
+file = "crates/horizon-client/src/mod_content.rs"
+name = "morebows"
+source = "items_runtime.rs"
+
+# BowItem.use: where the game tries the items that act on their own. The game knows a bow only by the id
+# `minecraft:bow`; the eight bows start their draw here.
+[[injection]]
+id = "use"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::creatures::Game<'_>::throw_item"
+helper = "use.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "stack", ty = "&horizon_client::items::ItemStack", value = "stack" },
+]
+
+# LivingEntity.updatingUsingItem: the first of the use ticks after the shield's; a bow stays in use.
+[[injection]]
+id = "use-tick"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::potions::Game<'_>::tick_drinking"
+helper = "use_tick.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "slot", ty = "usize", value = "slot" },
+  { name = "ticks", ty = "u32", value = "ticks" },
+  { name = "stack", ty = "&ItemStack", value = "stack" },
+]
+
+# Item.releaseUsing: CustomBow.releaseUsing.
+[[injection]]
+id = "release"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::Game<'_>::release_used_item"
+helper = "release.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "stack", ty = "&ItemStack", value = "stack" },
+  { name = "ticks", ty = "u32", value = "ticks" },
+  { name = "hand_changed", ty = "bool", value = "hand_changed" },
+]
+
+# Item.getUseDuration: 72000 for the bows (the model's use_duration, the draw animation).
+[[injection]]
+id = "use-duration"
+kind = "RETURN"
+target = "horizon_client::game::item_draw::use_duration"
+helper = "use_duration.rs"
+bindings = [
+  { name = "value", ty = "i32", value = "$value" },
+  { name = "components", ty = "&Components", value = "components" },
+]
+
+# ArrowSpawner.tick and CustomArrow.tick (frost): once per game tick.
+[[injection]]
+id = "tick"
+kind = "HEAD"
+target = "horizon_client::game::Game<'_>::tick_blocks"
+helper = "tick.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+# CustomArrow.onHitEntity (frost): slowness and the fire put out.
+[[injection]]
+id = "arrow-hit"
+kind = "HEAD"
+target = "horizon_client::game::creatures::Game<'_>::finish_arrow_hit"
+helper = "arrow_hit.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "arrow", ty = "&Projectile", value = "&arrow" },
+  { name = "outcome", ty = "EntityHit", value = "outcome" },
+]
+
+# CustomArrow.onHitEntity (frost): a blaze takes three times the damage.
+[[injection]]
+id = "arrow-damage"
+kind = "RETURN"
+target = "horizon_client::game::creatures::arrow_damage"
+helper = "arrow_damage.rs"
+bindings = [
+  { name = "value", ty = "f32", value = "$value" },
+  { name = "arrow", ty = "&Projectile", value = "&*arrow" },
+]
+
+# Client.FOV: the zoom of a drawn bow goes by its own draw time.
+[[injection]]
+id = "fov"
+kind = "RETURN"
+target = "horizon_client::game::extras::Game<'_>::zoomed_fov_target"
+helper = "fov.rs"
+bindings = [
+  { name = "value", ty = "f32", value = "$value" },
+  { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" },
+]
+
+# The items.json entries of the bows get their durability, repair materials and fire resistance.
+[[injection]]
+id = "item-numbers"
+kind = "RETURN"
+target = "horizon_client::mod_content::Plan<'_>::items"
+helper = "items.rs"
+bindings = [
+  { name = "value", ty = "()", value = "$value" },
+  { name = "map", ty = "&mut J", value = "&mut *map" },
+  { name = "components", ty = "bool", value = "components" },
+]
+
+# A world opens: the arrows kept back in the one before are gone.
+[[injection]]
+id = "open"
+kind = "HEAD"
+target = "horizon_client::game::chat::Game<'_>::load_world_state"
+helper = "open.rs"
+bindings = []

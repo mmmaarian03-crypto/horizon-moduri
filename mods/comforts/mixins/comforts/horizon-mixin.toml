@@ -1,0 +1,88 @@
+[mod]
+id = "comforts"
+version = "0.1.0"
+priority = 100
+
+[compatibility]
+horizon_revision = "142388e1c136e622652ec7505af15d8ad195e041"
+
+[[module]]
+id = "runtime"
+file = "crates/horizon-client/src/game.rs"
+name = "comforts"
+source = "runtime.rs"
+
+# Right-click on a bed: Comforts' own sleeping rules for its beds (the spawn point is not set).
+[[injection]]
+id = "try-sleep"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::Game<'_>::try_sleep"
+helper = "try-sleep.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "pos", ty = "[i32;3]", value = "pos" },
+]
+
+# Every game tick: sleepers in Comforts beds (waking, time of day) and the daytime skip of a hammock.
+[[injection]]
+id = "tick-sleep"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::Game<'_>::tick_sleep"
+helper = "tick-sleep.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+]
+
+# A guest of the integrated server (the player in single player) lying in a Comforts bed.
+[[injection]]
+id = "guest-sleep-tick"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::lan_actions::Game<'_>::guest_sleep_tick"
+helper = "guest-sleep-tick.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "host", ty = "&mut crate::game::lan::LanHost", value = "&mut *host" },
+  { name = "gi", ty = "usize", value = "gi" },
+]
+
+# Using an item on the block aimed at, after the block itself had its say (right before the
+# item's own `use_tool` and placement): a hammock needs a rope and nail, a sleeping bag checks first
+# that it can sleep. `ignite_tnt` is the small, early call of `use_hand` that can end the click.
+[[injection]]
+id = "use-on"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::tnt::Game<'_>::ignite_tnt"
+helper = "use-on.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "stack", ty = "&ItemStack", value = "stack" },
+]
+
+# A block item was placed: an auto-used sleeping bag goes to sleep.
+[[injection]]
+id = "placed"
+kind = "HEAD"
+target = "horizon_client::game::block_items::Game<'_>::apply_item_block_state"
+helper = "placed.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "pos", ty = "[i32;3]", value = "pos" },
+  { name = "state", ty = "BlockStateId", value = "state" },
+  { name = "stack", ty = "&ItemStack", value = "stack" },
+]
+
+# A block was destroyed (its particles): a rope and nail that goes lets its hammock fall.
+[[injection]]
+id = "destroyed"
+kind = "HEAD"
+target = "horizon_client::game::Game<'_>::destroy_particles"
+helper = "destroyed.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "pos", ty = "[i32;3]", value = "pos" },
+  { name = "state", ty = "BlockStateId", value = "state" },
+]

@@ -1,0 +1,9 @@
+[package]
+name = "horizon-itemphysic"
+version = "0.1.0"
+edition = "2024"
+license = "LGPL-3.0-only"
+publish = false
+description = "ItemPhysic for Horizon (native mod)"
+
+[dependencies]

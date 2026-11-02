@@ -1,0 +1,9 @@
+[package]
+name = "horizon-escape_rope"
+version = "0.1.0"
+edition = "2024"
+license = "AFL-3.0"
+publish = false
+description = "Escape Rope for Horizon (native mod)"
+
+[dependencies]

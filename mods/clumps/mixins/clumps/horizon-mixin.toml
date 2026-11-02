@@ -1,0 +1,67 @@
+[mod]
+id = "clumps"
+version = "0.1.0"
+priority = 100
+
+[compatibility]
+horizon_revision = "142388e1c136e622652ec7505af15d8ad195e041"
+
+# The rules and the game's orbs.
+[[module]]
+id = "runtime"
+file = "crates/horizon-client/src/game.rs"
+name = "clumps"
+source = "runtime.rs"
+
+# The part of the rules the save needs (a copy of a block of the engine; see tools/sync_nbt.py).
+[[module]]
+id = "save-rules"
+file = "crates/horizon-client/src/entity_nbt.rs"
+name = "clumps_save"
+source = "nbt.rs"
+
+# ExperienceOrb.tick scans for merges first and Player.aiStep takes the orbs, both before the orbs'
+# own movement of the tick. Horizon's tick_experience moves the orbs and then merges and picks up,
+# so the original's merges and pickup run before it, and its own are switched off below.
+[[injection]]
+id = "before-tick"
+kind = "HEAD"
+target = "horizon_client::game::Game<'_>::tick_experience"
+helper = "before_tick.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+]
+
+# MixinExperienceOrb.tryMergeToExisting: the new orb joins any orb in the 1x1x1 box around the spot.
+[[injection]]
+id = "award"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::Game<'_>::award_orb"
+helper = "award.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "at", ty = "[f64;3]", value = "at" },
+  { name = "value", ty = "u32", value = "value" },
+]
+
+# The game's own merge (same value, ids a multiple of 40 apart) is replaced by the original's
+# (any two orbs), which `clumps_before_tick` and `clumps_award` do: `can_merge` is never true.
+[[injection]]
+id = "can-merge"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::entities::ExperienceOrb::can_merge"
+helper = "can_merge.rs"
+bindings = []
+
+# `Value` of an orb is a short; a clump above 32767 is saved as Value x Count.
+[[injection]]
+id = "save"
+kind = "RETURN"
+target = "horizon_client::entity_nbt::orb_to_nbt"
+helper = "save.rs"
+bindings = [
+  { name = "tag", ty = "Tag", value = "$value" },
+  { name = "o", ty = "&ExperienceOrb", value = "o" },
+]

@@ -1,0 +1,9 @@
+[package]
+name = "horizon-additionalbanners"
+version = "0.1.0"
+edition = "2024"
+license = "LGPL-2.1-only"
+publish = false
+description = "Additional Banners for Horizon (native mod)"
+
+[dependencies]

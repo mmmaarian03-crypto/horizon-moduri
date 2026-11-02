@@ -1,0 +1,76 @@
+[mod]
+id = "presencefootsteps"
+version = "0.1.0"
+priority = 100
+
+[compatibility]
+horizon_revision = "142388e1c136e622652ec7505af15d8ad195e041"
+
+[[module]]
+id = "runtime"
+file = "crates/horizon-client/src/game.rs"
+name = "presencefootsteps"
+source = "runtime.rs"
+
+# The gate of the vanilla step sounds, in the sound library (audio.rs), where the sound is played.
+[[module]]
+id = "gate"
+file = "crates/horizon-client/src/audio.rs"
+name = "presencefootsteps_gate"
+source = "gate.rs"
+visibility = "pub"
+
+# Options > Mods lists the mod.
+[[injection]]
+id = "list"
+kind = "HEAD"
+target = "horizon_client::game::native_hooks::Game<'_>::native_mods"
+helper = "list.rs"
+bindings = [
+  { name = "mods", ty = "&mut Vec<crate::game::native_hooks::NativeMod>", value = "&mut *mods" },
+]
+
+# Its switches: footsteps, servers, boots, volume.
+[[injection]]
+id = "settings"
+kind = "HEAD"
+target = "horizon_client::game::native_hooks::Game<'_>::native_settings"
+helper = "settings.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" },
+  { name = "mod_id", ty = "&str", value = "mod_id" },
+  { name = "buttons", ty = "&mut Vec<String>", value = "&mut *buttons" },
+]
+
+[[injection]]
+id = "click"
+kind = "HEAD"
+target = "horizon_client::game::native_hooks::Game<'_>::native_settings_click"
+helper = "click.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" },
+  { name = "mod_id", ty = "&str", value = "mod_id" },
+  { name = "button", ty = "usize", value = "button" },
+]
+
+# SoundEngine.onFrame, once a client tick.
+[[injection]]
+id = "tick"
+kind = "HEAD"
+target = "horizon_client::game::native_hooks::Game<'_>::native_tick"
+helper = "tick.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+]
+
+# IEntity.playStepSounds cancelled for the players the engine steps for.
+[[injection]]
+id = "step-gate"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::audio::Audio::play_seeded"
+helper = "gate_hook.rs"
+bindings = [
+  { name = "event", ty = "&str", value = "event" },
+  { name = "at", ty = "Option<[f64; 3]>", value = "at" },
+]

@@ -1,0 +1,197 @@
+# Storage Drawers (jaquadro, 1.20.1 / 12.15.1, MIT) for Horizon: native mod, private use.
+[mod]
+id = "storagedrawers"
+version = "0.1.0"
+priority = 100
+
+[compatibility]
+horizon_revision = "142388e1c136e622652ec7505af15d8ad195e041"
+
+# The rules and the game side (native/horizon.rs + src/lib.rs), in the game.
+[[module]]
+id = "runtime"
+file = "crates/horizon-client/src/game.rs"
+name = "storagedrawers"
+source = "runtime.rs"
+
+# What the game library's hooks need (horizon_client::storagedrawers): the rules again, for the
+# block entity ids and sizes of the saves (shared.rs is src/lib.rs; a test keeps them equal).
+[[module]]
+id = "shared"
+file = "crates/horizon-client/src/lib.rs"
+name = "storagedrawers"
+source = "shared.rs"
+
+# BlockItem.place's last step: the drawer's block entity, its front, its item's contents.
+[[injection]]
+id = "placed"
+kind = "HEAD"
+target = "horizon_client::game::advancements::Game<'_>::trigger_block"
+helper = "placed.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "name", ty = "&str", value = "name" },
+  { name = "pos", ty = "[i32; 3]", value = "pos" },
+  { name = "stack", ty = "&horizon_client::items::ItemStack", value = "stack" },
+]
+
+# Right click: BlockDrawers.use / BlockController.use (put, keys, upgrades) before the block's own use.
+[[injection]]
+id = "use"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::copper_golems::Game<'_>::use_golem_statue"
+helper = "use.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "pos", ty = "[i32; 3]", value = "pos" },
+  { name = "held", ty = "Option<&horizon_client::items::ItemStack>", value = "held" },
+]
+
+# Left click: FaceSlotBlock.attack takes an item.
+[[injection]]
+id = "attack"
+kind = "HEAD"
+target = "horizon_client::game::Game<'_>::attack_block"
+helper = "attack.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "pos", ty = "[i32; 3]", value = "pos" },
+]
+
+# BlockDrawers.getMainDrop (KEEP): the contents go into the dropped drawer.
+[[injection]]
+id = "breaking"
+kind = "HEAD"
+target = "horizon_client::game::Game<'_>::break_block_as_player"
+helper = "breaking.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "pos", ty = "[i32; 3]", value = "pos" },
+]
+
+# The barrel the drawer copies would open a menu on any click that is not the drawer's own.
+[[injection]]
+id = "blocked"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::storage::Game<'_>::chest_menu_blocked"
+helper = "blocked.rs"
+bindings = [
+  { name = "name", ty = "&str", value = "name" },
+]
+
+# Hoppers and droppers into a drawer.
+[[injection]]
+id = "move-in"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::machines::Game<'_>::try_move_in_item"
+helper = "move_in.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "view", ty = "&View", value = "view" },
+  { name = "stack", ty = "&ItemStack", value = "&stack" },
+  { name = "slot", ty = "usize", value = "slot" },
+]
+
+# Hoppers do not take the upgrades out.
+[[injection]]
+id = "take-one"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::machines::Game<'_>::take_one"
+helper = "take_one.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" },
+  { name = "view", ty = "&View", value = "view" },
+  { name = "slot", ty = "usize", value = "slot" },
+]
+
+# A drawer is full by its capacity.
+[[injection]]
+id = "is-full"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::machines::Containers<'_>::is_full"
+helper = "is_full.rs"
+bindings = [
+  { name = "containers", ty = "&Containers<'_>", value = "self" },
+  { name = "view", ty = "&View", value = "view" },
+]
+
+# Comparators read nothing from a drawer.
+[[injection]]
+id = "signal"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::machines::Containers<'_>::signal"
+helper = "signal.rs"
+bindings = [
+  { name = "containers", ty = "&Containers<'_>", value = "self" },
+  { name = "view", ty = "&View", value = "view" },
+]
+
+# BlockEntityDrawersRenderer: the items on the front.
+[[injection]]
+id = "faces"
+kind = "HEAD"
+target = "horizon_client::game::campfire::Game<'_>::campfire_geometry"
+helper = "faces.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "self" },
+  { name = "camera", ty = "glam::DVec3", value = "camera" },
+  { name = "out", ty = "&mut Vec<horizon_client::mesher::Vertex>", value = "&mut *out" },
+]
+
+# The attributes' file, with the world.
+[[injection]]
+id = "load"
+kind = "HEAD"
+target = "horizon_client::game::chat::Game<'_>::load_world_state"
+helper = "load.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+]
+
+[[injection]]
+id = "save"
+kind = "HEAD"
+target = "horizon_client::game::Game<'_>::save_level"
+helper = "save.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+]
+
+# Saved as storagedrawers:<block> (the original's ids), loaded with all the slots.
+[[injection]]
+id = "save-id"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::save::block_entity_id"
+helper = "save_id.rs"
+bindings = [
+  { name = "e", ty = "&crate::containers::BlockEntity", value = "e" },
+  { name = "block", ty = "&str", value = "block" },
+]
+
+[[injection]]
+id = "save-load"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::save::decode_block_entity"
+helper = "save_load.rs"
+bindings = [
+  { name = "tag", ty = "&Tag", value = "tag" },
+]
+
+# Removal of any kind spills every slot (items and upgrades).
+[[injection]]
+id = "pre-remove"
+kind = "HEAD"
+cancellable = true
+target = "horizon_world::level::removal::pre_remove"
+helper = "pre_remove.rs"
+bindings = [
+  { name = "name", ty = "&str", value = "name" },
+]

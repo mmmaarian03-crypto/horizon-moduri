@@ -1,0 +1,9 @@
+[package]
+name = "horizon-mousetweaks"
+version = "0.1.0"
+edition = "2024"
+license = "BSD-3-Clause"
+publish = false
+description = "Mouse Tweaks for Horizon (native mod)"
+
+[dependencies]

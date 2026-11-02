@@ -1,0 +1,149 @@
+[mod]
+id = "hangglider"
+version = "0.1.0"
+priority = 100
+
+[compatibility]
+horizon_revision = "142388e1c136e622652ec7505af15d8ad195e041"
+
+# The game's side: the glider's use, the gliding movement and wind, the wear, the HUD icon.
+[[module]]
+id = "runtime"
+file = "crates/horizon-client/src/game.rs"
+name = "hangglider"
+source = "runtime.rs"
+
+# The content root's side: the gliders' durability and repair material (items_runtime.rs, made by
+# tools/bundle_extra.py).
+[[module]]
+id = "items"
+file = "crates/horizon-client/src/mod_content.rs"
+name = "hangglider"
+source = "items_runtime.rs"
+
+# The movement code's side: whether this thread's moved player glides (glide_lib.rs).
+[[module]]
+id = "glide-lib"
+file = "crates/horizon-client/src/motion.rs"
+name = "hangglider_glide"
+source = "glide_lib.rs"
+visibility = "pub"
+
+# The items.json entries of the gliders: 818 / 2202 durability, stack 1, leather / phantom membrane.
+[[injection]]
+id = "item-numbers"
+kind = "RETURN"
+target = "horizon_client::mod_content::Plan<'_>::items"
+helper = "items.rs"
+bindings = [
+  { name = "value", ty = "()", value = "$value" },
+  { name = "map", ty = "&mut J", value = "&mut *map" },
+  { name = "components", ty = "bool", value = "components" },
+]
+
+# GliderItem.use on a host in the frame and for a guest on the server (Item.use; it gets every use in
+# the air or on a block after the block's own use).
+[[injection]]
+id = "use"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::creatures::Game<'_>::throw_item"
+helper = "use.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "stack", ty = "&horizon_client::items::ItemStack", value = "stack" },
+]
+
+# GliderItem.use on the window's client (MultiPlayerGameMode.useItem), before the packet goes: the
+# client's copy of the click. (RETURN is refused: the body has closures.)
+[[injection]]
+id = "remote-use"
+kind = "HEAD"
+target = "horizon_client::game::remote::Game<'_>::remote_use_item"
+helper = "remote_use.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "hand", ty = "Hand", value = "hand" },
+]
+
+# Minecraft.startUseItem on the window's client: a main hand glider that opens / closes ends the click
+# (the off hand gets no turn), as SUCCESS does.
+[[injection]]
+id = "use-hands"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::remote::Game<'_>::remote_use_hands"
+helper = "use_hands.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+]
+
+# Before the moved player's tick (a host in the frame, the window's client): the glide flag for the pose.
+[[injection]]
+id = "before-move"
+kind = "HEAD"
+target = "horizon_client::game::Game<'_>::sync_player_body"
+helper = "before_move.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+# PlayerTickEvents.END: right after the moved player's tick (both callers run it after the movement).
+[[injection]]
+id = "end-tick"
+kind = "HEAD"
+target = "horizon_client::game::fov::Game<'_>::tick_avatar"
+helper = "end_tick.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+# The server's tick of each guest's body (single player's window is one): the fall distance and the wear.
+[[injection]]
+id = "guest-tick"
+kind = "HEAD"
+target = "horizon_client::game::lan_actions::Game<'_>::guest_glide_tick"
+helper = "guest_tick.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "host", ty = "&mut LanHost", value = "host" },
+  { name = "conn", ty = "u32", value = "conn" },
+  { name = "fell", ty = "f64", value = "fell" },
+]
+
+# PlayerMixin.updatePlayerPose: SPIN_ATTACK while gliding.
+[[injection]]
+id = "pose"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::pose::MotionWorld<'_,'_,'_>::update_player_pose"
+helper = "pose.rs"
+bindings = [
+  { name = "w", ty = "&mut MotionWorld<'_, '_, '_>", value = "&mut *self" },
+]
+
+# FovModifierHandler: x1.05 gliding, x1.1 gliding fast.
+[[injection]]
+id = "fov"
+kind = "RETURN"
+target = "horizon_client::game::extras::Game<'_>::zoomed_fov_target"
+helper = "fov.rs"
+bindings = [
+  { name = "value", ty = "f32", value = "$value" },
+  { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" },
+]
+
+# ElytraEquippedHandler.onRenderGui: the elytra-and-cross icon.
+[[injection]]
+id = "hud"
+kind = "HEAD"
+target = "horizon_client::game::titles::Game<'_>::draw_selected_name"
+helper = "hud.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "self" },
+  { name = "batch", ty = "&mut horizon_client::hud::HudBatch", value = "&mut *batch" },
+]
+
+# A world opens (HEAD, no bindings): forget the previous world's players.
+[[injection]]
+id = "open"
+kind = "HEAD"
+target = "horizon_client::game::chat::Game<'_>::load_world_state"
+helper = "open.rs"
+bindings = []

@@ -1,0 +1,68 @@
+[mod]
+id = "netherending"
+version = "0.1.0"
+priority = 100
+
+[compatibility]
+horizon_revision = "142388e1c136e622652ec7505af15d8ad195e041"
+
+# The game's side: the break event (endermen, endermites, pigmen) and the delayed explosions.
+[[module]]
+id = "runtime"
+file = "crates/horizon-client/src/game.rs"
+name = "netherending"
+source = "runtime.rs"
+
+# The End ores in the generation (worldgen_runtime.rs; tools/bundle_extra.py makes it).
+[[module]]
+id = "worldgen"
+file = "crates/horizon-world/src/worldgen/generator.rs"
+name = "netherending"
+source = "worldgen_runtime.rs"
+
+# BlockEvent.BreakEvent: the player breaks a block (before it is removed, before its drops).
+[[injection]]
+id = "break"
+kind = "HEAD"
+target = "horizon_client::game::Game<'_>::break_block_as_player"
+helper = "break.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "pos", ty = "[i32; 3]", value = "pos" },
+]
+
+# ServerTickEvent (END): the unstable ores explode 25 ticks after they were broken.
+[[injection]]
+id = "tick"
+kind = "HEAD"
+target = "horizon_client::game::Game<'_>::tick_blocks"
+helper = "tick.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+# ServerStoppedEvent: a world opens, the pending explosions of the one before are forgotten.
+[[injection]]
+id = "open"
+kind = "HEAD"
+target = "horizon_client::game::chat::Game<'_>::load_world_state"
+helper = "open.rs"
+bindings = []
+
+# forge:add_features (biome modifier) of the End ores: the text of the outer End biomes.
+[[injection]]
+id = "biomes"
+kind = "RETURN"
+target = "horizon_world::worldgen::generator::GeneratorData::biome_json"
+helper = "biomes.rs"
+bindings = [{ name = "value", ty = "&str", value = "$value" }]
+
+# The guests' tick on a server (single player's window included): the mobs a guest's break angered are
+# bound to him (`LanHost::mob_players`) once the hub is at hand.
+[[injection]]
+id = "guests-tick"
+kind = "HEAD"
+target = "horizon_client::game::lan_actions::Game<'_>::tick_guests"
+helper = "guests_tick.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "host", ty = "&mut crate::game::lan::LanHost", value = "&mut *host" },
+]

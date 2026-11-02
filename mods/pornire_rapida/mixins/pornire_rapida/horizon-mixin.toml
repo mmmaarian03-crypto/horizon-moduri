@@ -1,0 +1,31 @@
+[mod]
+id = "pornire_rapida"
+version = "0.1.0"
+priority = 100
+
+[compatibility]
+horizon_revision = "142388e1c136e622652ec7505af15d8ad195e041"
+
+# The content root builder's half (mod_content.rs, library crate): the engine and the Windows body of `link_children`.
+# Made by tools/hnmod.py bundle from native/horizon.rs + src/lib.rs.
+[[module]]
+id = "runtime"
+file = "crates/horizon-client/src/mod_content.rs"
+name = "pornire_rapida"
+source = "runtime.rs"
+
+# `mod_content::link` is defined twice (`cfg(unix)` symlink, `cfg(not(unix))` copy): the probe says E_TARGET_AMBIGUOUS.
+# Its only caller, `Overlay::link_children`, is plain (OK in the probe). On Windows (and any non-Unix target) the hook
+# does the same walk with hard links and returns Break; on Unix it returns Continue and the original runs.
+# Not hookable, so not changed: `stamp`, `resource_root`, `build`, `Plan::new`, `tables` and `content_root` all
+# contain macros (E_UNSUPPORTED_MACRO), and `Overlay::new` is generic over a lifetime (E_UNSUPPORTED_SIGNATURE).
+[[injection]]
+id = "link"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::mod_content::Overlay<'_>::link_children"
+helper = "link.rs"
+bindings = [
+  { name = "overlay", ty = "&Overlay<'_>", value = "self" },
+  { name = "rel", ty = "&Path", value = "rel" },
+]

@@ -1,0 +1,99 @@
+[mod]
+id = "additionalbanners"
+version = "0.1.0"
+priority = 100
+
+[compatibility]
+horizon_revision = "142388e1c136e622652ec7505af15d8ad195e041"
+
+# The window's half (tooltip line); made by tools/hnmod.py bundle from native/horizon.rs.
+[[module]]
+id = "runtime"
+file = "crates/horizon-client/src/game.rs"
+name = "additionalbanners"
+source = "runtime.rs"
+
+# The content root builder's half (registries, item components); made by tools/bundle_extra.py.
+[[module]]
+id = "content"
+file = "crates/horizon-client/src/mod_content.rs"
+name = "additionalbanners"
+source = "content_runtime.rs"
+
+# The menu engine's half (shears of the recipes); made by tools/bundle_extra.py.
+[[module]]
+id = "menu"
+file = "crates/horizon-client/src/menu.rs"
+name = "additionalbanners"
+source = "menu_runtime.rs"
+
+# Banners::load, the registry sync (lan/data.rs) and Trades::load read only data/minecraft/, the atlas
+# packs only assets/minecraft/textures/entity: the carried patterns, textures and trades are written there
+# too while the content root is built (BannerPattern registry + Sheets of the 1.20.1 mod, VillagerTradesEvent).
+[[injection]]
+id = "overlay"
+kind = "HEAD"
+target = "horizon_client::mod_content::Overlay<'_>::write"
+helper = "overlay.rs"
+bindings = [
+  { name = "overlay", ty = "&Overlay<'_>", value = "self" },
+  { name = "rel", ty = "&str", value = "rel" },
+  { name = "bytes", ty = "&[u8]", value = "bytes" },
+]
+
+# BannerPatternItem(TagKey): each item's provides_banner_patterns names its own pattern tag.
+[[injection]]
+id = "items"
+kind = "RETURN"
+target = "horizon_client::mod_content::Plan<'_>::items"
+helper = "items.rs"
+bindings = [
+  { name = "value", ty = "()", value = "$value" },
+  { name = "map", ty = "&mut J", value = "&mut *map" },
+  { name = "components", ty = "bool", value = "components" },
+]
+
+# BannerPatternItem.appendHoverText: the grey description line.
+[[injection]]
+id = "tooltip"
+kind = "RETURN"
+target = "horizon_client::game::stations::Game<'_>::stack_tooltip"
+helper = "tooltip.rs"
+bindings = [
+  { name = "value", ty = "Vec<(horizon_client::text::Text, u32)>", value = "$value" },
+  { name = "game", ty = "&crate::game::Game<'_>", value = "self" },
+  { name = "stack", ty = "&ItemStack", value = "stack" },
+]
+
+# The same with `--in-frame` (the window holds the world): a plain click on the result slot is click_inventory's
+# own ResultSlot loop (menu_ops refuses slot 200 without Shift), whose remainders come from Recipes::remainders
+# (not hookable). craft_recipe runs at the top of each craft (and on every frame the slot is drawn): a HEAD
+# remembers the matching grid, before polymorph's and enderstorage's cancellable HEADs; award_crafted runs after
+# the grid lost one of each: a HEAD puts the shears back. Only the window's own grid (guests use the menu engine).
+[[injection]]
+id = "frame-look"
+kind = "HEAD"
+target = "horizon_client::game::Game<'_>::craft_recipe"
+helper = "frame_look.rs"
+priority = 1000
+bindings = [{ name = "game", ty = "&crate::game::Game<'_>", value = "self" }]
+
+[[injection]]
+id = "frame-crafted"
+kind = "HEAD"
+target = "horizon_client::game::Game<'_>::award_crafted"
+helper = "frame_crafted.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+# bookshelf:shapeless_durability: the shears stay in the grid, hurt by one. Before polymorph's cancellable
+# HEAD on the same function, so the result is computed from the grid with the shears back.
+[[injection]]
+id = "recompute"
+kind = "HEAD"
+target = "horizon_client::menu::Menu::recompute"
+helper = "recompute.rs"
+priority = 500
+bindings = [
+  { name = "menu", ty = "&mut crate::menu::Menu", value = "&mut *self" },
+  { name = "env", ty = "&crate::menu::Env<'_>", value = "env" },
+]

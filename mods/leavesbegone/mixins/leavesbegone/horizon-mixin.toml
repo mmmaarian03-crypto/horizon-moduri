@@ -1,0 +1,27 @@
+[mod]
+id = "leavesbegone"
+version = "0.1.0"
+priority = 100
+
+[compatibility]
+horizon_revision = "142388e1c136e622652ec7505af15d8ad195e041"
+
+[[module]]
+id = "runtime"
+file = "crates/horizon-client/src/game.rs"
+name = "leavesbegone"
+source = "runtime.rs"
+
+# ServerLevel.tick runs the block ticks, then (the original's injection after the first LevelTicks.tick)
+# the extra random ticks, then the fluid ticks. Horizon's tick_scheduled does the block and the fluid
+# ticks in one function, so the extra phase has to go between its two halves: the hook runs the same
+# loop, popping the block ticks itself to see what each one did to a leaves block.
+[[injection]]
+id = "scheduled"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::Game<'_>::tick_scheduled"
+helper = "scheduled.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+]

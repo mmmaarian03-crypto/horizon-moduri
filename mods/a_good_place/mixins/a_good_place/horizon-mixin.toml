@@ -1,0 +1,83 @@
+[mod]
+id = "a_good_place"
+version = "0.1.0"
+priority = 100
+
+[compatibility]
+horizon_revision = "142388e1c136e622652ec7505af15d8ad195e041"
+
+# The rules and the game's side (starting, ticking and drawing the animations).
+[[module]]
+id = "runtime"
+file = "crates/horizon-client/src/game.rs"
+name = "a_good_place"
+source = "runtime.rs"
+
+# The blocks hidden while their animation runs, read by the chunk mesher (worker threads, in the library crate).
+[[module]]
+id = "mesher"
+file = "crates/horizon-client/src/mesher.rs"
+name = "a_good_place_hidden"
+source = "mesher.rs"
+visibility = "pub"
+
+# Options > Mods lists the mod (and turns it off).
+[[injection]]
+id = "list"
+kind = "HEAD"
+target = "horizon_client::game::native_hooks::Game<'_>::native_mods"
+helper = "list.rs"
+bindings = [
+  { name = "mods", ty = "&mut Vec<crate::game::native_hooks::NativeMod>", value = "&mut *mods" },
+]
+
+# BlockItem.place: the block is in the level and the player's item has set its block state.
+[[injection]]
+id = "place"
+kind = "HEAD"
+target = "horizon_client::game::block_items::Game<'_>::apply_item_block_state"
+helper = "place.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "pos", ty = "[i32; 3]", value = "pos" },
+  { name = "state", ty = "BlockStateId", value = "state" },
+  { name = "stack", ty = "&ItemStack", value = "stack" },
+]
+
+# The particle engine's tick.
+[[injection]]
+id = "tick"
+kind = "HEAD"
+target = "horizon_client::game::native_hooks::Game<'_>::native_tick"
+helper = "tick.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+]
+
+# The animated blocks, with the other block-shaped entities (falling blocks, moving pistons).
+[[injection]]
+id = "geometry"
+kind = "HEAD"
+target = "horizon_client::game::moving_pistons::Game<'_>::moving_piston_geometry"
+helper = "geometry.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" },
+  { name = "camera", ty = "glam::DVec3", value = "camera" },
+  { name = "alpha", ty = "f64", value = "alpha" },
+  { name = "out", ty = "&mut Vec<Vertex>", value = "&mut *out" },
+]
+
+# A section with a hidden block near it is meshed from a copy of the chunks around where the hidden blocks are air
+# (they are air for the mesh and for their neighbours' faces, as in the original). The hook calls the function again
+# with that copy (a guard lets the inner call through); every other section is untouched.
+[[injection]]
+id = "blank"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::mesher::Mesher<'_>::mesh"
+helper = "blank.rs"
+bindings = [
+  { name = "this", ty = "&mut Mesher<'_>", value = "&mut *self" },
+  { name = "region", ty = "&[[Option<&Chunk>; 3]; 3]", value = "region" },
+  { name = "sy", ty = "i32", value = "sy" },
+]

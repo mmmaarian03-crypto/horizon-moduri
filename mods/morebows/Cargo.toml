@@ -1,0 +1,9 @@
+[package]
+name = "horizon-morebows"
+version = "0.1.0"
+edition = "2024"
+license = "CC0-1.0"
+publish = false
+description = "More Bows Restrung for Horizon (native mod)"
+
+[dependencies]

@@ -1,0 +1,9 @@
+[package]
+name = "horizon-betteradvancements"
+version = "0.1.0"
+edition = "2024"
+license = "LicenseRef-DBaJ-NC"
+publish = false
+description = "Better Advancements for Horizon (native mod)"
+
+[dependencies]

@@ -1,0 +1,33 @@
+[mod]
+id = "attributefix"
+version = "0.1.0"
+priority = 100
+
+[compatibility]
+horizon_revision = "142388e1c136e622652ec7505af15d8ad195e041"
+
+# The pack's ranges (engine + adapter) live next to `Definition`, where every ranged attribute is built.
+[[module]]
+id = "runtime"
+file = "crates/horizon-world/src/attributes/mod.rs"
+name = "attributefix"
+source = "runtime.rs"
+
+# AttributeFix writes its ranges into the attributes when the game has loaded. Horizon builds every
+# attribute from its catalog file with `Definition::ranged(default, min, max)`, which stores
+# `Some((min, max))` as the range (the only place the game gives an attribute its range), so the
+# range stored there is the one the pack's file asks for. The check of the vanilla numbers above it
+# runs on the numbers the catalog has; the numbers of the pack always keep the default inside.
+[[injection]]
+id = "range"
+kind = "MODIFY_ARG"
+target = "horizon_world::attributes::Definition::ranged"
+selector = "Some"
+require = 1
+ordinal = 0
+argument = 0
+helper = "range.rs"
+bindings = [
+  { name = "range", ty = "(f64,f64)", value = "$value" },
+  { name = "default", ty = "f64", value = "default" },
+]

@@ -1,0 +1,36 @@
+[mod]
+id = "enchdesc"
+version = "0.1.0"
+priority = 100
+
+[compatibility]
+horizon_revision = "142388e1c136e622652ec7505af15d8ad195e041"
+
+[[module]]
+id = "runtime"
+file = "crates/horizon-client/src/game.rs"
+name = "enchdesc"
+source = "runtime.rs"
+
+# Options > Mods lists the mod (and turns it off).
+[[injection]]
+id = "list"
+kind = "HEAD"
+target = "horizon_client::game::native_hooks::Game<'_>::native_mods"
+helper = "list.rs"
+bindings = [
+  { name = "mods", ty = "&mut Vec<crate::game::native_hooks::NativeMod>", value = "&mut *mods" },
+]
+
+# ItemTooltipEvent: every item tooltip goes through `stack_tooltip` (a plain function around the big
+# builder, which has macros), so the descriptions are added to its result.
+[[injection]]
+id = "tooltip"
+kind = "RETURN"
+target = "horizon_client::game::stations::Game<'_>::stack_tooltip"
+helper = "tooltip.rs"
+bindings = [
+  { name = "value", ty = "Vec<(horizon_client::text::Text, u32)>", value = "$value" },
+  { name = "game", ty = "&crate::game::Game<'_>", value = "self" },
+  { name = "stack", ty = "&ItemStack", value = "stack" },
+]

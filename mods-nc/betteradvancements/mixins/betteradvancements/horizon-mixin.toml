@@ -1,0 +1,79 @@
+[mod]
+id = "betteradvancements"
+version = "0.1.0"
+priority = 100
+
+[compatibility]
+horizon_revision = "142388e1c136e622652ec7505af15d8ad195e041"
+
+[[module]]
+id = "runtime"
+file = "crates/horizon-client/src/game.rs"
+name = "betteradvancements"
+source = "runtime.rs"
+
+# Options > Mods lists the mod (and turns it off).
+[[injection]]
+id = "list"
+kind = "HEAD"
+target = "horizon_client::game::native_hooks::Game<'_>::native_mods"
+helper = "list.rs"
+bindings = [
+  { name = "mods", ty = "&mut Vec<crate::game::native_hooks::NativeMod>", value = "&mut *mods" },
+]
+
+# The screen opens: the drag and the fade start over.
+[[injection]]
+id = "open"
+kind = "HEAD"
+target = "horizon_client::game::advancements_screen::Game<'_>::open_advancements"
+helper = "open.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+]
+
+# The screen itself replaces the game's.
+[[injection]]
+id = "draw"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::advancements_screen::Game<'_>::draw_advancements"
+helper = "draw.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "batch", ty = "&mut horizon_client::hud::HudBatch", value = "&mut *batch" },
+]
+
+[[injection]]
+id = "mouse"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::advancements_screen::Game<'_>::advancements_mouse"
+helper = "mouse.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "pressed", ty = "bool", value = "pressed" },
+  { name = "size", ty = "[u32; 2]", value = "size" },
+]
+
+[[injection]]
+id = "drag"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::advancements_screen::Game<'_>::advancements_drag"
+helper = "drag.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+]
+
+[[injection]]
+id = "scroll"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::advancements_screen::Game<'_>::advancements_scroll"
+helper = "scroll.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "x", ty = "f32", value = "x" },
+  { name = "y", ty = "f32", value = "y" },
+]

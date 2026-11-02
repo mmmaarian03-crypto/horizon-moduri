@@ -1,0 +1,93 @@
+[mod]
+id = "tlc"
+version = "0.1.0"
+priority = 100
+
+[compatibility]
+horizon_revision = "142388e1c136e622652ec7505af15d8ad195e041"
+
+# The rules (src/lib.rs) and their reading of the generator, in the structure
+# starts' own file; public, for the trading hooks in horizon-client.
+[[module]]
+id = "runtime"
+file = "crates/horizon-world/src/worldgen/structure/start_checks.rs"
+name = "tlc"
+source = "runtime.rs"
+visibility = "pub"
+
+# The castle map once the cartographer's trade has searched for the castle.
+[[module]]
+id = "maps"
+file = "crates/horizon-client/src/game.rs"
+name = "tlc"
+source = "maps.rs"
+
+# LostCastle.findGenerationPoint's extraSpawningChecks, before the layout: no castle
+# on uneven land or within 5000 blocks of the centre.
+[[injection]]
+id = "pass"
+kind = "HEAD"
+cancellable = true
+target = "horizon_world::worldgen::structure::start_checks::StartChecks::pass"
+helper = "pass.rs"
+bindings = [
+  { name = "checks", ty = "&StartChecks", value = "self" },
+  { name = "queries", ty = "&mut dyn CheckQueries", value = "&mut *queries" },
+  { name = "chunk", ty = "ChunkPos", value = "chunk" },
+]
+
+# DisableVanillaStrongholdsMixin (tryGenerateStructure cancelled for the vanilla
+# stronghold type): a set of vanilla strongholds places no start, and /locate and
+# eyes of ender find none.
+[[injection]]
+id = "stronghold"
+kind = "HEAD"
+cancellable = true
+target = "horizon_world::worldgen::structure::start::StructureRegistry::is_structure_chunk"
+helper = "stronghold.rs"
+bindings = [
+  { name = "registry", ty = "&StructureRegistry", value = "self" },
+  { name = "set", ty = "&StructureSet", value = "set" },
+]
+
+# A villager trade's cost: the castle map's 15 to 25 emeralds.
+[[injection]]
+id = "price"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::merchant::cost"
+helper = "price.rs"
+bindings = [
+  { name = "items", ty = "&Items", value = "items" },
+  { name = "v", ty = "&Value", value = "v" },
+  { name = "additional", ty = "i32", value = "additional" },
+]
+
+# ExplorationMapFunction in the game world, after its search: the castle map's
+# name, and LCMap.createMap's map of (0, 0) when no castle was found.
+[[injection]]
+id = "map"
+kind = "RETURN"
+target = "horizon_client::game::trading::<GameMaps<'_> as merchant::MapMaker>::exploration_map"
+helper = "map.rs"
+bindings = [
+  { name = "value", ty = "ItemStack", value = "$value" },
+  { name = "maps", ty = "&GameMaps<'_>", value = "self" },
+  { name = "map", ty = "&merchant::ExplorationMap", value = "map" },
+]
+
+# The trade registry, loaded with the workstation data: the castle map's trade
+# (data/tlc/villager_trade/), which cartographer level 3's tag names.
+[[injection]]
+id = "trades"
+kind = "AFTER_CALL"
+target = "horizon_client::stations::StationData::load"
+selector = "crate::merchant::Trades::load"
+require = 1
+ordinal = 0
+result = "crate::merchant::Trades"
+helper = "trades.rs"
+bindings = [
+  { name = "trades", ty = "&mut crate::merchant::Trades", value = "$result_mut" },
+  { name = "root", ty = "&Path", value = "root" },
+]

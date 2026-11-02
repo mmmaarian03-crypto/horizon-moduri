@@ -1,0 +1,115 @@
+[mod]
+id = "overflowingbars"
+version = "0.1.0"
+priority = 100
+
+[compatibility]
+horizon_revision = "142388e1c136e622652ec7505af15d8ad195e041"
+
+# The game's side: the facts only the game knows, once per client tick (runtime.rs).
+[[module]]
+id = "runtime"
+file = "crates/horizon-client/src/game.rs"
+name = "overflowingbars"
+source = "runtime.rs"
+
+# The HUD's side: the bars, in the library where the HUD's draw calls are made (hud_runtime.rs, made by
+# tools/bundle_hud.py; `visibility = "pub"` so the game's side can call it).
+[[module]]
+id = "hud"
+file = "crates/horizon-client/src/hud_layout.rs"
+name = "overflowingbars"
+source = "hud_runtime.rs"
+visibility = "pub"
+
+# Options > Mods lists the mod (and turns it off).
+[[injection]]
+id = "list"
+kind = "HEAD"
+target = "horizon_client::game::native_hooks::Game<'_>::native_mods"
+helper = "list.rs"
+bindings = [
+  { name = "mods", ty = "&mut Vec<crate::game::native_hooks::NativeMod>", value = "&mut *mods" },
+]
+
+# A client tick: the armor toughness, the chat's offset, whether the sheets are there.
+[[injection]]
+id = "tick"
+kind = "HEAD"
+target = "horizon_client::game::native_hooks::Game<'_>::native_tick"
+helper = "tick.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+]
+
+# GuiOverlayHandler: PLAYER_HEALTH and ARMOR_LEVEL are cancelled and drawn again by the mod, the toughness bar is a new
+# overlay. The game's whole health layout runs inside this hook (it has a closure, so RETURN is refused) and its
+# hearts and armor are swapped for the mod's bars.
+[[injection]]
+id = "layout"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::hud_layout::HealthHud::layout"
+helper = "layout.rs"
+bindings = [
+  { name = "this", ty = "&mut HealthHud", value = "&mut *self" },
+  { name = "inputs", ty = "&HealthInputs", value = "i" },
+  { name = "w", ty = "i32", value = "w" },
+  { name = "h", ty = "i32", value = "h" },
+]
+
+# GuiMixin.renderExperienceBar: the level number 3 pixels up (moveExperienceAboveBar).
+[[injection]]
+id = "experience"
+kind = "RETURN"
+target = "horizon_client::hud_layout::experience"
+helper = "experience.rs"
+bindings = [
+  { name = "value", ty = "Vec<GuiDraw>", value = "$value" },
+]
+
+# CustomizeChatPanelCallback (moveChatAboveArmor): the chat's vertices move up by the rows' offset.
+[[injection]]
+id = "chat-begin"
+kind = "HEAD"
+target = "horizon_client::chat::Chat::draw"
+helper = "chat_begin.rs"
+bindings = [
+  { name = "batch", ty = "&HudBatch", value = "&*batch" },
+]
+[[injection]]
+id = "chat-end"
+kind = "RETURN"
+target = "horizon_client::chat::Chat::draw"
+helper = "chat_end.rs"
+bindings = [
+  { name = "value", ty = "()", value = "$value" },
+  { name = "batch", ty = "&mut HudBatch", value = "&mut *batch" },
+]
+
+# ChatComponentMixin.screenToChatY: the mouse over the moved chat (a click on a link, a hover, the indicator bar).
+[[injection]]
+id = "chat-style"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::chat::Chat::style_at"
+helper = "chat_style.rs"
+bindings = [
+  { name = "this", ty = "&Chat", value = "self" },
+  { name = "font", ty = "&crate::font::Font", value = "font" },
+  { name = "height", ty = "i32", value = "height" },
+  { name = "x", ty = "f64", value = "x" },
+  { name = "y", ty = "f64", value = "y" },
+]
+[[injection]]
+id = "chat-indicator"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::chat::Chat::indicator_at"
+helper = "chat_indicator.rs"
+bindings = [
+  { name = "this", ty = "&Chat", value = "self" },
+  { name = "height", ty = "i32", value = "height" },
+  { name = "x", ty = "f64", value = "x" },
+  { name = "y", ty = "f64", value = "y" },
+]

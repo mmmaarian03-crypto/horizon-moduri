@@ -1,0 +1,9 @@
+[package]
+name = "horizon-tlc"
+version = "0.1.0"
+edition = "2024"
+license = "LGPL-3.0-only"
+publish = false
+description = "The Lost Castle for Horizon (native mod)"
+
+[dependencies]

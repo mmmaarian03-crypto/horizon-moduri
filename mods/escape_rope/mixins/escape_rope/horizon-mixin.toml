@@ -1,0 +1,67 @@
+[mod]
+id = "escape_rope"
+version = "0.1.0"
+priority = 100
+
+[compatibility]
+horizon_revision = "142388e1c136e622652ec7505af15d8ad195e041"
+
+[[module]]
+id = "runtime"
+file = "crates/horizon-client/src/game.rs"
+name = "escape_rope"
+source = "runtime.rs"
+
+# LastSkyCoordProcedure (PlayerTickEvent, END) of the in-frame host: once per game tick.
+[[injection]]
+id = "tick"
+kind = "HEAD"
+target = "horizon_client::game::Game<'_>::tick_blocks"
+helper = "tick.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+# EscapeRopeItem.use: where the game tries the items that act on their own (in the air or against a
+# block, after the block's own use).
+[[injection]]
+id = "use"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::creatures::Game<'_>::throw_item"
+helper = "use.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "stack", ty = "&horizon_client::items::ItemStack", value = "stack" },
+]
+
+# EscapeRopeItem.appendHoverText: one more line (the first component line the tooltip asks for that
+# the rope has none of; torchmaster does the same for its items).
+[[injection]]
+id = "tooltip"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::item_tooltip::bees_line"
+helper = "tooltip.rs"
+bindings = [
+  { name = "stack", ty = "&crate::items::ItemStack", value = "stack" },
+  { name = "translate", ty = "&dyn Fn(&str) -> Option<String>", value = "translate" },
+]
+
+# LastSkyCoordProcedure of every guest on the server (single player's window is one since #1514): the
+# guests' tick, not while single player is paused.
+[[injection]]
+id = "guests-tick"
+kind = "HEAD"
+target = "horizon_client::game::lan_actions::Game<'_>::tick_guests"
+helper = "guests_tick.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "host", ty = "&mut crate::game::lan::LanHost", value = "&mut *host" },
+]
+
+# A world opens: forget the previous world's place.
+[[injection]]
+id = "open"
+kind = "HEAD"
+target = "horizon_client::game::chat::Game<'_>::load_world_state"
+helper = "open.rs"
+bindings = []

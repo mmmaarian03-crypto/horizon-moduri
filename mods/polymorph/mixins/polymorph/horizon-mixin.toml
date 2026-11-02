@@ -1,0 +1,154 @@
+[mod]
+id = "polymorph"
+version = "0.1.0"
+priority = 100
+
+[compatibility]
+horizon_revision = "142388e1c136e622652ec7505af15d8ad195e041"
+
+[[module]]
+id = "runtime"
+file = "crates/horizon-client/src/game.rs"
+name = "polymorph"
+source = "runtime.rs"
+
+# The lib crate's menu engine needs its own (tiny) module: it reads Menu's private fields.
+[[module]]
+id = "menu"
+file = "crates/horizon-client/src/menu.rs"
+name = "polymorph"
+source = "menu.rs"
+
+# The grid's recipe for the result slot, the shift-click crafting loop and the display (HEAD: the body has
+# closures, so RETURN is refused).
+[[injection]]
+id = "craft"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::Game<'_>::craft_recipe"
+helper = "craft.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" },
+]
+
+# The menu engine's own result for the same grid (inventory clicks go through it). HEAD, because the body has
+# a closure (RETURN refused): when a choice applies it sets the result itself and skips the original.
+[[injection]]
+id = "recompute"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::menu::Menu::recompute"
+helper = "recompute.rs"
+bindings = [
+  { name = "menu", ty = "&mut crate::menu::Menu", value = "&mut *self" },
+  { name = "env", ty = "&crate::menu::Env<'_>", value = "env" },
+]
+
+# The selector button and popup, drawn over the crafting screen (taburi_creative hooks the same function).
+[[injection]]
+id = "draw"
+kind = "HEAD"
+target = "horizon_client::game::Game<'_>::draw_carried"
+helper = "draw.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "batch", ty = "&mut horizon_client::hud::HudBatch", value = "&mut *batch" },
+]
+
+# A mouse press: the buttons take it (mousetweaks hooks this one too, non-cancelling).
+[[injection]]
+id = "press"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::tweaks::Game<'_>::sort_mouse_press"
+helper = "press.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "button", ty = "winit::event::MouseButton", value = "button" },
+]
+
+# Saving the world (HEAD, verified by torchmaster): the remembered recipe.
+[[injection]]
+id = "save"
+kind = "HEAD"
+target = "horizon_client::game::Game<'_>::save_game_metadata"
+helper = "save.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+# A world opens (HEAD, no bindings; verified by torchmaster): forget the previous world's choice.
+[[injection]]
+id = "open"
+kind = "HEAD"
+target = "horizon_client::game::chat::Game<'_>::load_world_state"
+helper = "open.rs"
+bindings = []
+
+# ---- server and client (single player's window is a client of its integrated server) ----
+
+# The guests' open crafting table menu (private to lan_crafting): its result made again from the guest's choice.
+[[module]]
+id = "lan-crafting"
+file = "crates/horizon-client/src/game/lan_crafting.rs"
+name = "polymorph"
+source = "lan_crafting.rs"
+
+# The window's own clicks: this thread's hand-over file holds the window player's choice.
+[[injection]]
+id = "before-ops"
+kind = "HEAD"
+target = "horizon_client::game::Game<'_>::menu_ops"
+helper = "before_ops.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+# A guest's crafting on a server: the menu engine reads that guest's choice.
+[[injection]]
+id = "guest-inventory"
+kind = "HEAD"
+target = "horizon_client::game::lan_crafting::Game<'_>::lan_inventory_click"
+helper = "guest_inventory.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "host", ty = "&mut crate::game::lan::LanHost", value = "&mut *host" },
+  { name = "conn", ty = "u32", value = "conn" },
+]
+
+[[injection]]
+id = "guest-table"
+kind = "HEAD"
+target = "horizon_client::game::lan_crafting::Game<'_>::lan_crafting_click"
+helper = "guest_table.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "host", ty = "&mut crate::game::lan::LanHost", value = "&mut *host" },
+  { name = "conn", ty = "u32", value = "conn" },
+]
+
+[[injection]]
+id = "guest-place"
+kind = "HEAD"
+target = "horizon_client::game::lan_crafting::Game<'_>::lan_place_recipe"
+helper = "guest_place.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "host", ty = "&mut crate::game::lan::LanHost", value = "&mut *host" },
+  { name = "conn", ty = "u32", value = "conn" },
+]
+
+# The guests' tick on a server: polymorph:sel (the remembered choice) to each guest once.
+[[injection]]
+id = "guests-tick"
+kind = "HEAD"
+target = "horizon_client::game::lan_actions::Game<'_>::tick_guests"
+helper = "guests_tick.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "host", ty = "&mut crate::game::lan::LanHost", value = "&mut *host" },
+]
+
+# Every Game's tick (the window's too): a server's client takes polymorph:sel.
+[[injection]]
+id = "client-tick"
+kind = "HEAD"
+target = "horizon_client::game::native_hooks::Game<'_>::native_tick"
+helper = "client_tick.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]

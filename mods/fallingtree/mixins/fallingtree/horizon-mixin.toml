@@ -1,0 +1,24 @@
+[mod]
+id = "fallingtree"
+version = "0.1.0"
+priority = 100
+
+[compatibility]
+horizon_revision = "142388e1c136e622652ec7505af15d8ad195e041"
+
+[[module]]
+id = "runtime"
+file = "crates/horizon-client/src/game.rs"
+name = "fallingtree"
+source = "runtime.rs"
+
+[[injection]]
+id = "break"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::Game<'_>::break_block"
+helper = "break.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "pos", ty = "[i32;3]", value = "pos" },
+]

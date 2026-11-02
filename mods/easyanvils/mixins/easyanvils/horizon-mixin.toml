@@ -1,0 +1,261 @@
+# Easy Anvils (Fuzs, 1.20.1 v8.0.2) for Horizon: native mod, private use.
+[mod]
+id = "easyanvils"
+version = "0.1.0"
+priority = 100
+
+[compatibility]
+horizon_revision = "142388e1c136e622652ec7505af15d8ad195e041"
+
+# The game side (native/horizon.rs + src/lib.rs), in the game.
+[[module]]
+id = "runtime"
+file = "crates/horizon-client/src/game.rs"
+name = "easyanvils"
+source = "runtime.rs"
+
+# The cost rules (src/lib.rs + the glue), in the library's workstation rules.
+[[module]]
+id = "shared"
+file = "crates/horizon-client/src/stations.rs"
+name = "easyanvils"
+source = "shared.rs"
+
+# ModAnvilMenu.createResult: the whole anvil result with the pack's costs.
+[[injection]]
+id = "result"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::stations::anvil_result"
+helper = "result.rs"
+bindings = [
+  { name = "e", ty = "&Enchantments", value = "e" },
+  { name = "items", ty = "&Items", value = "items" },
+  { name = "input", ty = "Option<&ItemStack>", value = "input" },
+  { name = "addition", ty = "Option<&ItemStack>", value = "addition" },
+  { name = "name", ty = "Option<&str>", value = "name" },
+  { name = "hover_name", ty = "&str", value = "hover_name" },
+  { name = "creative", ty = "bool", value = "creative" },
+]
+
+# ModAnvilMenu.mayPickup, in the menu engine: cost >= 0 (free renames).
+[[injection]]
+id = "pickup"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::menu::Menu::may_pickup"
+helper = "pickup.rs"
+bindings = [
+  { name = "menu", ty = "&Menu", value = "self" },
+  { name = "s", ty = "usize", value = "s" },
+]
+
+# The same in the game's own check (the colour of the cost line).
+[[injection]]
+id = "take"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::stations::Game<'_>::may_take_result"
+helper = "take.rs"
+bindings = [{ name = "game", ty = "&Game<'_>", value = "self" }]
+
+# No "Too Expensive!" for a cost that can be paid when the limit is off.
+[[injection]]
+id = "expensive"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::stations::Game<'_>::translate"
+helper = "expensive.rs"
+bindings = [
+  { name = "game", ty = "&Game<'_>", value = "self" },
+  { name = "key", ty = "&str", value = "key" },
+  { name = "fallback", ty = "&str", value = "fallback" },
+]
+
+# renaming_supports_formatting: the rename box takes `§` codes.
+[[injection]]
+id = "typing"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::ui::EditBox::insert_text"
+helper = "typing.rs"
+bindings = [
+  { name = "edit", ty = "&mut EditBox", value = "&mut *self" },
+  { name = "text", ty = "&str", value = "text" },
+]
+
+# AnvilMenu.onTake's wear for the host: the anvil take of `combiner_session_end` with Easy Anvils'
+# chance (5 %, none for a rename alone); every other path is the game's own.
+[[injection]]
+id = "session"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::stations::Game<'_>::combiner_session_end"
+helper = "session.rs"
+bindings = [
+  { name = "game", ty = "&mut Game<'_>", value = "&mut *self" },
+  { name = "menu", ty = "&horizon_client::menu::Menu", value = "menu" },
+  { name = "predicting", ty = "bool", value = "predicting" },
+]
+
+# The same for a LAN guest's take (`lan_station_combined`, past the smithing table's branch).
+[[injection]]
+id = "guest"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::lan_stations::Game<'_>::lan_station_combined"
+helper = "guest.rs"
+bindings = [
+  { name = "game", ty = "&mut Game<'_>", value = "&mut *self" },
+  { name = "host", ty = "&mut LanHost", value = "&mut *host" },
+  { name = "conn", ty = "u32", value = "conn" },
+  { name = "gs", ty = "&mut GuestStation", value = "&mut *gs" },
+]
+
+# The anvil's menu: its two slots start with the anvil's items; they stay when it closes.
+[[injection]]
+id = "opened"
+kind = "RETURN"
+target = "horizon_client::game::stations::Game<'_>::open_station"
+helper = "opened.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "pos", ty = "[i32; 3]", value = "pos" },
+  { name = "name", ty = "&str", value = "name" },
+  { name = "value", ty = "bool", value = "$value" },
+]
+
+[[injection]]
+id = "close"
+kind = "HEAD"
+target = "horizon_client::game::stations::Game<'_>::close_station"
+helper = "close.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+# Every game tick: the open anvil's inputs, anvils that are gone spill their items.
+[[injection]]
+id = "tick"
+kind = "HEAD"
+target = "horizon_client::game::block_entity_ticks::Game<'_>::tick_block_entities"
+helper = "tick.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+# AnvilRenderer: the items lie on the anvil (drawn with the campfire's items).
+[[injection]]
+id = "geometry"
+kind = "HEAD"
+target = "horizon_client::game::campfire::Game<'_>::campfire_geometry"
+helper = "geometry.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "self" },
+  { name = "camera", ty = "glam::DVec3", value = "camera" },
+  { name = "out", ty = "&mut Vec<horizon_client::mesher::Vertex>", value = "&mut *out" },
+]
+
+[[injection]]
+id = "save"
+kind = "HEAD"
+target = "horizon_client::game::Game<'_>::save_game_metadata"
+helper = "save.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[injection]]
+id = "open"
+kind = "HEAD"
+target = "horizon_client::game::chat::Game<'_>::load_world_state"
+helper = "open.rs"
+bindings = []
+
+# ItemInteractionHandler.onUseBlock: an iron block on an anvil repairs one stage (one of the block
+# reactions use_hand asks first).
+[[injection]]
+id = "use-block"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::copper_golems::Game<'_>::use_golem_statue"
+helper = "use-block.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "pos", ty = "[i32; 3]", value = "pos" },
+  { name = "held", ty = "Option<&ItemStack>", value = "held" },
+]
+
+# The registered dispenser behaviour of Items.IRON_BLOCK (anvil repairing by dispenser).
+[[injection]]
+id = "dispense"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::dispenser::Game<'_>::dispense_item"
+helper = "dispense.rs"
+bindings = [
+  { name = "game", ty = "&mut Game<'_>", value = "&mut *self" },
+  { name = "pos", ty = "Pos", value = "pos" },
+  { name = "facing", ty = "Direction", value = "facing" },
+  { name = "stack", ty = "&ItemStack", value = "&stack" },
+]
+
+# ---- a server's guests (single player's window is a guest of its integrated server) ----
+
+# The guests' station menus are private to lan_stations: this module is its child.
+[[module]]
+id = "lan-stations"
+file = "crates/horizon-client/src/game/lan_stations.rs"
+name = "easyanvils"
+source = "lan_stations.rs"
+
+# The guest's station menu opened or changed (every path ends by sending it): an anvil's items.
+[[injection]]
+id = "guest-content"
+kind = "HEAD"
+target = "horizon_client::game::lan_stations::Game<'_>::lan_send_station"
+helper = "guest_content.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "host", ty = "&mut crate::game::lan::LanHost", value = "&mut *host" },
+  { name = "conn", ty = "u32", value = "conn" },
+]
+
+# A guest's ContainerClose tries lan_crafting_closed first (lan_station_closed holds a macro and cannot be
+# hooked): a held anvil keeps its items (AbstractContainerMenu.removed).
+[[injection]]
+id = "guest-closed"
+kind = "HEAD"
+target = "horizon_client::game::lan_crafting::Game<'_>::lan_crafting_closed"
+helper = "guest_closed.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "host", ty = "&mut crate::game::lan::LanHost", value = "&mut *host" },
+  { name = "conn", ty = "u32", value = "conn" },
+  { name = "window", ty = "Option<i32>", value = "window" },
+]
+
+# The guest leaves: a held anvil keeps its items (before the station's inputs go back to his inventory).
+[[injection]]
+id = "guest-left"
+kind = "HEAD"
+target = "horizon_client::game::lan_crafting::Game<'_>::lan_crafting_left"
+helper = "guest_left.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "host", ty = "&mut crate::game::lan::LanHost", value = "&mut *host" },
+  { name = "g", ty = "&horizon_client::lan::guest::Guest", value = "&*g" },
+]
+
+# The guests' tick on a server: held anvils copied (or kept when the block is gone), anvils to the clients.
+[[injection]]
+id = "guests-tick"
+kind = "HEAD"
+target = "horizon_client::game::lan_actions::Game<'_>::tick_guests"
+helper = "guests_tick.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "host", ty = "&mut crate::game::lan::LanHost", value = "&mut *host" },
+]
+
+# Every Game's tick (the window's too): a server's client takes easyanvils:anvils.
+[[injection]]
+id = "client-tick"
+kind = "HEAD"
+target = "horizon_client::game::native_hooks::Game<'_>::native_tick"
+helper = "client_tick.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]

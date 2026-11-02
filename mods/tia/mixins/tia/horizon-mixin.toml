@@ -1,0 +1,85 @@
+[mod]
+id = "tia"
+version = "0.1.0"
+priority = 100
+
+[compatibility]
+horizon_revision = "142388e1c136e622652ec7505af15d8ad195e041"
+
+[[module]]
+id = "runtime"
+file = "crates/horizon-client/src/game.rs"
+name = "tia"
+source = "runtime.rs"
+
+# A click on a slot (`AbstractContainerMenu.doClick`): the slot's animation starts, the carried
+# item's starts over.
+[[injection]]
+id = "clicks"
+kind = "HEAD"
+target = "horizon_client::game::Game<'_>::menu_ops"
+helper = "clicks.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "ops", ty = "&[(Option<usize>, i32, horizon_client::menu::Input)]", value = "ops" },
+]
+
+# Every tick: a closed screen takes its slots' animations with it.
+[[injection]]
+id = "tick"
+kind = "HEAD"
+target = "horizon_client::game::native_hooks::Game<'_>::native_tick"
+helper = "tick.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+]
+
+# The inventory screen begins a frame (`render`): where its slots are.
+[[injection]]
+id = "frame"
+kind = "HEAD"
+target = "horizon_client::game::Game<'_>::draw_inventory"
+helper = "frame.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" },
+  { name = "batch", ty = "&horizon_client::hud::HudBatch", value = "&*batch" },
+]
+
+# The item model of a slot (`renderSlot` and `GuiGraphics.renderItem`): its animation steps, and
+# the model is drawn scaled.
+[[injection]]
+id = "model"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::item_draw::Game<'_>::draw_item_model"
+helper = "model.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "self" },
+  { name = "batch", ty = "&mut horizon_client::hud::HudBatch", value = "&mut *batch" },
+  { name = "stack", ty = "&horizon_client::items::ItemStack", value = "stack" },
+  { name = "x", ty = "f32", value = "x" },
+  { name = "y", ty = "f32", value = "y" },
+]
+
+# The carried item (`renderFloatingItem`): its animation steps, and it is drawn scaled.
+[[injection]]
+id = "carried"
+kind = "HEAD"
+target = "horizon_client::game::Game<'_>::draw_carried"
+helper = "carried.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" },
+]
+[[injection]]
+id = "item"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::Game<'_>::draw_item"
+helper = "item.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "self" },
+  { name = "batch", ty = "&mut horizon_client::hud::HudBatch", value = "&mut *batch" },
+  { name = "stack", ty = "&horizon_client::items::ItemStack", value = "stack" },
+  { name = "x", ty = "f32", value = "x" },
+  { name = "y", ty = "f32", value = "y" },
+]

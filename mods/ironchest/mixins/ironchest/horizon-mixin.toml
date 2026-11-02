@@ -1,0 +1,330 @@
+# Iron Chests (progwml6, 1.20.1-14.4.4) for Horizon: native mod, private use.
+[mod]
+id = "ironchest"
+version = "0.1.0"
+priority = 100
+
+[compatibility]
+horizon_revision = "142388e1c136e622652ec7505af15d8ad195e041"
+
+# The rules and the game side (native/horizon.rs + src/lib.rs), in the game.
+[[module]]
+id = "runtime"
+file = "crates/horizon-client/src/game.rs"
+name = "ironchest"
+source = "runtime.rs"
+
+# What the game library's hooks need (horizon_client::ironchest).
+[[module]]
+id = "shared"
+file = "crates/horizon-client/src/lib.rs"
+name = "ironchest"
+source = "shared.rs"
+
+# BlockItem.place's last step (placed_block trigger): the chest's block entity, unpaired, its item's data, the dirt chest's book.
+[[injection]]
+id = "placed"
+kind = "HEAD"
+target = "horizon_client::game::advancements::Game<'_>::trigger_block"
+helper = "placed.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "name", ty = "&str", value = "name" },
+  { name = "pos", ty = "[i32; 3]", value = "pos" },
+  { name = "stack", ty = "&horizon_client::items::ItemStack", value = "stack" },
+]
+
+# AbstractIronChestBlock.isChestBlockedAt, first thing open_menu asks.
+[[injection]]
+id = "blocked"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::storage::Game<'_>::chest_menu_blocked"
+helper = "blocked.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "self" },
+  { name = "key", ty = "(i32, i32, i32)", value = "key" },
+  { name = "name", ty = "&str", value = "name" },
+]
+
+# open_menu reaches open_station for blocks BlockEntity::for_block does not know: the chest opens there.
+[[injection]]
+id = "open"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::stations::Game<'_>::open_station"
+helper = "open.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "pos", ty = "[i32; 3]", value = "pos" },
+  { name = "name", ty = "&str", value = "name" },
+]
+
+# The copper chest goes down open_menu's vanilla chest path (its name ends in copper_chest): all 45 slots, its statistic.
+[[injection]]
+id = "vanilla-opened"
+kind = "HEAD"
+target = "horizon_client::game::maps::Game<'_>::resolve_container_maps"
+helper = "vanilla_opened.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "key", ty = "(i32, i32, i32)", value = "key" },
+]
+
+# A LAN guest's menu (generic_9x6 / generic_9x5).
+[[injection]]
+id = "lan-open"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::lan_actions::Game<'_>::lan_open_container"
+helper = "lan_open.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "host", ty = "&mut crate::game::lan::LanHost", value = "&mut *host" },
+  { name = "conn", ty = "u32", value = "conn" },
+  { name = "pos", ty = "(i32, i32, i32)", value = "pos" },
+]
+
+# TrappedChestBlockEntity.signalOpenCount for the trapped chests.
+[[injection]]
+id = "lid"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::block_entity_anims::Game<'_>::lid_openers_changed"
+helper = "lid.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "key", ty = "(i32, i32, i32)", value = "key" },
+  { name = "open", ty = "bool", value = "open" },
+]
+
+# Every click on an open chest's menu, with all its slots.
+[[injection]]
+id = "menu-ops"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::Game<'_>::menu_ops"
+helper = "menu_ops.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "ops", ty = "&[(Option<usize>, i32, horizon_client::menu::Input)]", value = "ops" },
+]
+
+# The drag preview on a chest's menu.
+[[injection]]
+id = "drag-view"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::Game<'_>::drag_view"
+helper = "drag_view.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+]
+
+# Which chest slots a drag takes.
+[[injection]]
+id = "drag-accepts"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::Game<'_>::quick_craft_accepts"
+helper = "drag_accepts.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "slot", ty = "usize", value = "slot" },
+  { name = "ty", ty = "i32", value = "ty" },
+  { name = "dragged", ty = "usize", value = "dragged" },
+]
+
+# The screen's corner (184 or 238 wide).
+[[injection]]
+id = "origin"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::Game<'_>::inventory_origin"
+helper = "origin.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "self" },
+  { name = "batch", ty = "&horizon_client::hud::HudBatch", value = "batch" },
+]
+
+# The screen's height (ySize).
+[[injection]]
+id = "height"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::machines::Game<'_>::screen_height"
+helper = "height.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "self" },
+]
+
+# hasClickedOutside over the whole chest screen.
+[[injection]]
+id = "image"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::Game<'_>::container_image"
+helper = "image.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "self" },
+  { name = "batch", ty = "&horizon_client::hud::HudBatch", value = "batch" },
+]
+
+# IronChestMenu's slot layout.
+[[injection]]
+id = "slot-position"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::machines::Game<'_>::machine_slot_position"
+helper = "slot_position.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "self" },
+  { name = "i", ty = "usize", value = "i" },
+]
+
+# IronChestScreen: the mod's background and labels.
+[[injection]]
+id = "draw"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::machines::Game<'_>::draw_machine_screen"
+helper = "draw.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "self" },
+  { name = "batch", ty = "&mut horizon_client::hud::HudBatch", value = "&mut *batch" },
+  { name = "ox", ty = "f32", value = "ox" },
+  { name = "oy", ty = "f32", value = "oy" },
+]
+
+# IronChestRenderer.renderItem: the crystal chest's top items.
+[[injection]]
+id = "crystal"
+kind = "HEAD"
+target = "horizon_client::game::campfire::Game<'_>::campfire_geometry"
+helper = "crystal.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "self" },
+  { name = "camera", ty = "glam::DVec3", value = "camera" },
+  { name = "out", ty = "&mut Vec<horizon_client::mesher::Vertex>", value = "&mut *out" },
+]
+
+# Each tick: the open chest keeps all its slots.
+[[injection]]
+id = "tick"
+kind = "HEAD"
+target = "horizon_client::game::storage::Game<'_>::tick_container_reach"
+helper = "tick.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+]
+
+# Each frame: the chest items' sprites in the GUI atlas.
+[[injection]]
+id = "sprites"
+kind = "HEAD"
+target = "horizon_client::game::entity_culling::Game<'_>::prepare_entity_culling"
+helper = "sprites.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+]
+
+# ChestUpgradeItem.onItemUseFirst, among the blocks' first reactions.
+[[injection]]
+id = "upgrade"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::copper_golems::Game<'_>::use_golem_statue"
+helper = "upgrade.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "pos", ty = "[i32; 3]", value = "pos" },
+  { name = "held", ty = "Option<&horizon_client::items::ItemStack>", value = "held" },
+]
+
+# DirtChestBlockEntity.removeAdornments.
+[[injection]]
+id = "breaking"
+kind = "HEAD"
+target = "horizon_client::game::Game<'_>::break_block_as_player"
+helper = "breaking.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "pos", ty = "[i32; 3]", value = "pos" },
+]
+
+# Saved as ironchest:<block> (the original's ids).
+[[injection]]
+id = "save-id"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::save::block_entity_id"
+helper = "save_id.rs"
+bindings = [
+  { name = "e", ty = "&crate::containers::BlockEntity", value = "e" },
+  { name = "block", ty = "&str", value = "block" },
+]
+
+# Loaded with all the tier's slots.
+[[injection]]
+id = "save-load"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::save::decode_block_entity"
+helper = "save_load.rs"
+bindings = [
+  { name = "tag", ty = "&Tag", value = "tag" },
+]
+
+# Which states are chests.
+[[injection]]
+id = "render-index"
+kind = "HEAD"
+target = "horizon_client::block_entity_render::BlockEntityRenderer::new"
+helper = "render_index.rs"
+bindings = [
+  { name = "registry", ty = "&BlockRegistry", value = "registry" },
+]
+
+# IronChestRenderer: a chest model with the chest's texture.
+[[injection]]
+id = "render-kind"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::block_entity_render::BlockEntityRenderer::kind"
+helper = "render_kind.rs"
+bindings = [
+  { name = "this", ty = "&BlockEntityRenderer", value = "self" },
+  { name = "state", ty = "u32", value = "state" },
+]
+
+# Which states are chests (no renderer on a server).
+[[injection]]
+id = "anim-index"
+kind = "HEAD"
+target = "horizon_client::block_entity_anim::BlockEntityAnims::classify"
+helper = "anim_index.rs"
+bindings = [
+  { name = "registry", ty = "&horizon_world::registry::BlockRegistry", value = "registry" },
+]
+
+# ChestLidController: the lid.
+[[injection]]
+id = "anim-ticker"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::block_entity_anim::BlockEntityAnims::ticker"
+helper = "anim_ticker.rs"
+bindings = [
+  { name = "state", ty = "u32", value = "state" },
+]
+
+# AbstractIronChestBlock.onRemove: Containers.dropContents of every slot.
+[[injection]]
+id = "pre-remove"
+kind = "HEAD"
+cancellable = true
+target = "horizon_world::level::removal::pre_remove"
+helper = "pre_remove.rs"
+bindings = [
+  { name = "name", ty = "&str", value = "name" },
+]

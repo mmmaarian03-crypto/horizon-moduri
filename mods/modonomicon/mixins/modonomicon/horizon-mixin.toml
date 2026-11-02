@@ -1,0 +1,42 @@
+[mod]
+id = "modonomicon"
+version = "0.1.0"
+priority = 100
+
+[compatibility]
+horizon_revision = "142388e1c136e622652ec7505af15d8ad195e041"
+
+[[module]]
+id = "runtime"
+file = "crates/horizon-client/src/game.rs"
+name = "modonomicon"
+source = "runtime.rs"
+
+# Right-click on a block (as mcwwindows/mcwlights/torchmaster): the first block use in use_hand
+# that is a plain function; reached when the click is on a block and not sneaking with a full hand.
+[[injection]]
+id = "use"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::copper_golems::Game<'_>::use_golem_statue"
+helper = "use.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "pos", ty = "[i32;3]", value = "pos" },
+]
+
+# Saving the world (HEAD, verified by torchmaster): the mod's side files.
+[[injection]]
+id = "save"
+kind = "HEAD"
+target = "horizon_client::game::Game<'_>::save_game_metadata"
+helper = "save.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+# A world opens (HEAD, no bindings; verified by torchmaster): forget the previous world's state.
+[[injection]]
+id = "open"
+kind = "HEAD"
+target = "horizon_client::game::chat::Game<'_>::load_world_state"
+helper = "open.rs"
+bindings = []

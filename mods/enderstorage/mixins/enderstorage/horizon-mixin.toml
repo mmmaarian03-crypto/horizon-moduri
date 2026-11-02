@@ -1,0 +1,269 @@
+# EnderStorage (covers1624 / ChickenBones, 1.20.1-2.11.0.188, MIT) for Horizon: native mod, private use.
+# Needs the native mod `forja` in the same build (the Ender Tank is a forja fluid handler).
+[mod]
+id = "enderstorage"
+version = "0.1.0"
+priority = 100
+
+[compatibility]
+horizon_revision = "142388e1c136e622652ec7505af15d8ad195e041"
+
+# The rules and the game side (native/horizon.rs + src/lib.rs), in the game.
+[[module]]
+id = "runtime"
+file = "crates/horizon-client/src/game.rs"
+name = "enderstorage"
+source = "runtime.rs"
+
+# What the game library's hooks need (horizon_client::enderstorage): the rules again plus the part that
+# knows the item stacks (shared.rs is src/lib.rs + native/library.rs, made by tools/mkshared.py).
+[[module]]
+id = "shared"
+file = "crates/horizon-client/src/lib.rs"
+name = "enderstorage"
+source = "shared.rs"
+visibility = "pub"
+
+# BlockItem.place's last step: the frequency of the item goes to the block, the chest gets its copy.
+[[injection]]
+id = "placed"
+kind = "HEAD"
+target = "horizon_client::game::advancements::Game<'_>::trigger_block"
+helper = "placed.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "name", ty = "&str", value = "name" },
+  { name = "pos", ty = "[i32; 3]", value = "pos" },
+  { name = "stack", ty = "&horizon_client::items::ItemStack", value = "stack" },
+]
+
+# Right click: BlockEnderStorage.use (buttons, latch) and the tank's bucket, before the block's own use.
+[[injection]]
+id = "use"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::copper_golems::Game<'_>::use_golem_statue"
+helper = "use.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "pos", ty = "[i32; 3]", value = "pos" },
+  { name = "held", ty = "Option<&horizon_client::items::ItemStack>", value = "held" },
+]
+
+# ItemEnderPouch: open the inventory; sneaking on an Ender Chest copies its frequency.
+[[injection]]
+id = "pouch"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::books::Game<'_>::use_book"
+helper = "pouch.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "stack", ty = "&horizon_client::items::ItemStack", value = "stack" },
+]
+
+# The chest has no cat or conductor rule; the tank opens no menu.
+[[injection]]
+id = "blocked"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::storage::Game<'_>::chest_menu_blocked"
+helper = "blocked.rs"
+bindings = [
+  { name = "name", ty = "&str", value = "name" },
+]
+
+# open_menu ends in open_station for a block the game does not know: the chest's menu.
+[[injection]]
+id = "open"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::stations::Game<'_>::open_station"
+helper = "open.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "pos", ty = "[i32; 3]", value = "pos" },
+  { name = "name", ty = "&str", value = "name" },
+]
+
+# The chest screen (rows, background, slots, title) for the Ender Chest and the pouch: the game
+# takes the open container for a vanilla ender chest, which it draws as a generic 9-wide chest.
+[[injection]]
+id = "rows"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::storage::Game<'_>::container_block"
+helper = "rows.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "self" },
+]
+
+[[injection]]
+id = "title"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::storage::Game<'_>::container_title"
+helper = "title.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "self" },
+]
+
+# The pouch's copy goes to the inventory when its menu closes.
+[[injection]]
+id = "closing"
+kind = "HEAD"
+target = "horizon_client::game::minecarts::Game<'_>::close_cart_container"
+helper = "closing.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "key", ty = "(i32, i32, i32)", value = "key" },
+]
+
+# CreateRecipe and ReColourRecipe.
+[[injection]]
+id = "craft"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::Game<'_>::craft_recipe"
+helper = "craft.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "self" },
+]
+
+# appendHoverText: the colours.
+[[injection]]
+id = "tooltip"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::item_tooltip::bees_line"
+helper = "tooltip.rs"
+bindings = [
+  { name = "stack", ty = "&crate::items::ItemStack", value = "stack" },
+  { name = "translate", ty = "&dyn Fn(&str) -> Option<String>", value = "translate" },
+]
+
+# The copies of the inventories equal, once a tick.
+[[injection]]
+id = "tick"
+kind = "HEAD"
+target = "horizon_client::game::block_entity_ticks::Game<'_>::tick_block_entities"
+helper = "tick.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+]
+
+# EnderStorageManager's files, with the world.
+[[injection]]
+id = "load"
+kind = "HEAD"
+target = "horizon_client::game::chat::Game<'_>::load_world_state"
+helper = "load.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+]
+
+[[injection]]
+id = "save"
+kind = "HEAD"
+target = "horizon_client::game::Game<'_>::save_level"
+helper = "save.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+]
+
+# BlockEnderStorage.getDrops: the item keeps the frequency.
+[[injection]]
+id = "loot"
+kind = "RETURN"
+target = "horizon_client::game::Game<'_>::block_loot_at"
+helper = "loot.rs"
+bindings = [
+  { name = "value", ty = "Vec<ItemStack>", value = "$value" },
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "pos", ty = "[i32; 3]", value = "pos" },
+  { name = "state", ty = "BlockStateId", value = "state" },
+]
+
+# Saved as enderstorage:ender_chest, loaded with the inventory's size.
+[[injection]]
+id = "save-id"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::save::block_entity_id"
+helper = "save_id.rs"
+bindings = [
+  { name = "e", ty = "&crate::containers::BlockEntity", value = "e" },
+  { name = "block", ty = "&str", value = "block" },
+]
+
+[[injection]]
+id = "save-load"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::save::decode_block_entity"
+helper = "save_load.rs"
+bindings = [
+  { name = "tag", ty = "&Tag", value = "tag" },
+]
+
+# Removal spills nothing: the items are the frequency's.
+[[injection]]
+id = "pre-remove"
+kind = "HEAD"
+cancellable = true
+target = "horizon_world::level::removal::pre_remove"
+helper = "pre_remove.rs"
+bindings = [
+  { name = "name", ty = "&str", value = "name" },
+]
+
+# The chest item's model sprite in the GUI atlas.
+[[injection]]
+id = "sprites"
+kind = "HEAD"
+target = "horizon_client::game::entity_culling::Game<'_>::prepare_entity_culling"
+helper = "sprites.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+]
+
+# RenderTileEnderChest: a chest model with the mod's texture.
+[[injection]]
+id = "render-index"
+kind = "HEAD"
+target = "horizon_client::block_entity_render::BlockEntityRenderer::new"
+helper = "render_index.rs"
+bindings = [
+  { name = "registry", ty = "&BlockRegistry", value = "registry" },
+]
+
+[[injection]]
+id = "render-kind"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::block_entity_render::BlockEntityRenderer::kind"
+helper = "render_kind.rs"
+bindings = [
+  { name = "this", ty = "&BlockEntityRenderer", value = "self" },
+  { name = "state", ty = "u32", value = "state" },
+]
+
+# Which states are Ender Chests; the lid.
+[[injection]]
+id = "anim-index"
+kind = "HEAD"
+target = "horizon_client::block_entity_anim::BlockEntityAnims::classify"
+helper = "anim_index.rs"
+bindings = [
+  { name = "registry", ty = "&horizon_world::registry::BlockRegistry", value = "registry" },
+]
+
+[[injection]]
+id = "anim-ticker"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::block_entity_anim::BlockEntityAnims::ticker"
+helper = "anim_ticker.rs"
+bindings = [
+  { name = "state", ty = "u32", value = "state" },
+]

@@ -1,0 +1,76 @@
+[mod]
+id = "itemphysic"
+version = "0.1.0"
+priority = 100
+
+[compatibility]
+horizon_revision = "142388e1c136e622652ec7505af15d8ad195e041"
+
+[[module]]
+id = "runtime"
+file = "crates/horizon-client/src/game.rs"
+name = "itemphysic"
+source = "runtime.rs"
+
+# The item entity's physics, in the game library next to ItemEntity (horizon_client::entities::itemphysic).
+# Made by tools/bundle_physics.py from src/lib.rs + native/physics_glue.rs.
+[[module]]
+id = "physics"
+file = "crates/horizon-client/src/entities.rs"
+name = "itemphysic"
+source = "physics.rs"
+visibility = "pub"
+
+# ItemEntity.tick (ItemEntityMixin: updatePre at isInWater, no vanilla fluid/gravity branch, update in place of the
+# friction, checkFallDamage).
+[[injection]]
+id = "tick"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::entities::ItemEntity::tick"
+helper = "tick.rs"
+bindings = [
+  { name = "item", ty = "&mut ItemEntity", value = "&mut *self" },
+  { name = "world", ty = "&World", value = "world" },
+  { name = "facts", ty = "&BlockFacts", value = "facts" },
+  { name = "collision", ty = "&BlockCollisionRegistry<'_>", value = "collision" },
+  { name = "no_physics", ty = "bool", value = "no_physics" },
+  { name = "fluids", ty = "&crate::motion::FluidResources", value = "fluids" },
+]
+
+# The item's fire, lava and cactus damage (ItemEntityMixin: hurt, fireImmune).
+[[injection]]
+id = "environment"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::entities::ItemEntity::environment_tick"
+helper = "environment.rs"
+bindings = [
+  { name = "item", ty = "&mut ItemEntity", value = "&mut *self" },
+  { name = "world", ty = "&World", value = "world" },
+  { name = "facts", ty = "&BlockFacts", value = "facts" },
+  { name = "registry", ty = "&horizon_world::registry::BlockRegistry", value = "registry" },
+  { name = "items", ty = "&crate::items::Items", value = "items" },
+]
+
+# Each tick: the landing sounds of the items, for every player.
+[[injection]]
+id = "sounds"
+kind = "HEAD"
+target = "horizon_client::game::block_entity_ticks::Game<'_>::tick_block_entities"
+helper = "sounds.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+# Explosions (ItemPhysicServer.hurt: undestroyable items take no damage).
+[[injection]]
+id = "explode"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::explosion::Game<'_>::explosion_hurt_entities"
+helper = "explode.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "center", ty = "[f64; 3]", value = "center" },
+  { name = "radius", ty = "f32", value = "radius" },
+  { name = "damage_type", ty = "&str", value = "damage_type" },
+]

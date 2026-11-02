@@ -1,0 +1,101 @@
+[mod]
+id = "taburi_creative"
+version = "0.1.0"
+priority = 100
+
+[compatibility]
+horizon_revision = "142388e1c136e622652ec7505af15d8ad195e041"
+
+# The library side (creative.rs): the engine, the tabs of the content mods, the page.
+[[module]]
+id = "runtime"
+file = "crates/horizon-client/src/creative.rs"
+name = "taburi_creative"
+source = "runtime.rs"
+
+# The screen's side (game.rs): the buttons, the label, the clicks.
+[[module]]
+id = "game-ui"
+file = "crates/horizon-client/src/game.rs"
+name = "taburi_creative_ui"
+source = "game_ui.rs"
+
+# The page of the screen, readable from game.rs: a handle on the page kept in creative.rs.
+[[state]]
+id = "paging"
+target = "horizon_client::creative::Creative"
+ty = "crate::creative::taburi_creative::PagingHandle"
+initial = "crate::creative::taburi_creative::PagingHandle"
+
+[[state.constructor]]
+target = "horizon_client::creative::Creative::new"
+selector = "Self"
+require = 1
+
+# Content mods' tabs and items: Creative::load starts reading them (a thread), and reopen, the
+# first time the screen opens, adds them to what the game built from vanilla's export. A load
+# whose root has no content mods does nothing.
+[[injection]]
+id = "load"
+kind = "HEAD"
+target = "horizon_client::creative::Creative::load"
+helper = "load.rs"
+bindings = [{ name = "root", ty = "&Path", value = "root" }]
+
+# A tab on another page than the screen's is put out of sight and out of reach.
+[[injection]]
+id = "position"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::creative::Creative::tab_position"
+helper = "position.rs"
+bindings = [{ name = "tab", ty = "&Tab", value = "tab" }]
+
+[[injection]]
+id = "select"
+kind = "HEAD"
+target = "horizon_client::creative::Creative::select"
+helper = "select.rs"
+bindings = [
+  { name = "creative", ty = "&Creative", value = "&*self" },
+  { name = "tab", ty = "usize", value = "tab" },
+]
+
+[[injection]]
+id = "reopen"
+kind = "HEAD"
+target = "horizon_client::creative::Creative::reopen"
+helper = "reopen.rs"
+bindings = [{ name = "creative", ty = "&mut Creative", value = "&mut *self" }]
+
+# The buttons and the label, drawn just before the carried stack (so it stays on top of them).
+[[injection]]
+id = "draw"
+kind = "HEAD"
+target = "horizon_client::game::Game<'_>::draw_carried"
+helper = "draw.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "batch", ty = "&mut horizon_client::hud::HudBatch", value = "&mut *batch" },
+]
+
+[[injection]]
+id = "click"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::Game<'_>::click_creative"
+helper = "click.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "right", ty = "bool", value = "right" },
+]
+
+[[injection]]
+id = "pad"
+kind = "HEAD"
+target = "horizon_client::game::pad_menu::Game<'_>::pad_creative_tab"
+helper = "pad.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "next", ty = "bool", value = "next" },
+]

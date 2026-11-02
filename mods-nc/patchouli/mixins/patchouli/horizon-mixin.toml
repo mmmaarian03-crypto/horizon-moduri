@@ -1,0 +1,182 @@
+[mod]
+id = "patchouli"
+version = "0.2.0"
+priority = 100
+
+[compatibility]
+horizon_revision = "142388e1c136e622652ec7505af15d8ad195e041"
+
+[[module]]
+id = "runtime"
+file = "crates/horizon-client/src/game.rs"
+name = "patchouli"
+source = "runtime.rs"
+
+# Options > Mods lists the mod (and turns it off).
+[[injection]]
+id = "list"
+kind = "HEAD"
+target = "horizon_client::game::native_hooks::Game<'_>::native_mods"
+helper = "list.rs"
+bindings = [
+  { name = "mods", ty = "&mut Vec<crate::game::native_hooks::NativeMod>", value = "&mut *mods" },
+]
+
+# The use of a book item (ItemModBook.use): on the window of a single-player or server game ...
+[[injection]]
+id = "use"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::books::Game<'_>::remote_use_book"
+helper = "use.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "stack", ty = "&horizon_client::items::ItemStack", value = "stack" },
+]
+
+# ... and when the world runs in the frame.
+[[injection]]
+id = "useframe"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::books::Game<'_>::use_book"
+helper = "useframe.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "stack", ty = "&horizon_client::items::ItemStack", value = "stack" },
+]
+
+# The book takes the Advancements screen while it is open (naturescompass does the same; betteradvancements hooks the
+# same functions with a lower priority and is never reached while a book is open).
+[[injection]]
+id = "draw"
+kind = "HEAD"
+cancellable = true
+priority = 1000
+target = "horizon_client::game::advancements_screen::Game<'_>::draw_advancements"
+helper = "draw.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "batch", ty = "&mut horizon_client::hud::HudBatch", value = "&mut *batch" },
+]
+
+[[injection]]
+id = "mouse"
+kind = "HEAD"
+cancellable = true
+priority = 1000
+target = "horizon_client::game::advancements_screen::Game<'_>::advancements_mouse"
+helper = "mouse.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "pressed", ty = "bool", value = "pressed" },
+  { name = "size", ty = "[u32; 2]", value = "size" },
+]
+
+[[injection]]
+id = "drag"
+kind = "HEAD"
+cancellable = true
+priority = 1000
+target = "horizon_client::game::advancements_screen::Game<'_>::advancements_drag"
+helper = "drag.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[injection]]
+id = "scroll"
+kind = "HEAD"
+cancellable = true
+priority = 1000
+target = "horizon_client::game::advancements_screen::Game<'_>::advancements_scroll"
+helper = "scroll.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "y", ty = "f32", value = "y" },
+]
+
+# Every press of a mouse button (left, right, the two on the side) is the book's while it is open.
+[[injection]]
+id = "press"
+kind = "HEAD"
+cancellable = true
+priority = 1000
+target = "horizon_client::game::tweaks::Game<'_>::sort_mouse_press"
+helper = "press.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "button", ty = "winit::event::MouseButton", value = "button" },
+]
+
+# The keys (the first step of key_pressed).
+[[injection]]
+id = "key"
+kind = "HEAD"
+cancellable = true
+priority = 1000
+target = "horizon_client::game::tweaks::Game<'_>::sort_key_press"
+helper = "key.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "key", ty = "winit::keyboard::KeyCode", value = "key" },
+]
+
+# The search bar of the lists takes the typed keys.
+[[injection]]
+id = "focused"
+kind = "HEAD"
+cancellable = true
+priority = 1000
+target = "horizon_client::game::recipe_book::Game<'_>::recipe_search_focused"
+helper = "focused.rs"
+bindings = [{ name = "game", ty = "&crate::game::Game<'_>", value = "self" }]
+
+[[injection]]
+id = "typing"
+kind = "HEAD"
+cancellable = true
+priority = 1000
+target = "horizon_client::game::recipe_book::Game<'_>::recipe_key"
+helper = "typing.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "event", ty = "&winit::event::KeyEvent", value = "event" },
+]
+
+# /open-patchouli-book and /patchouli (a command typed in chat, without its slash).
+[[injection]]
+id = "command"
+kind = "HEAD"
+target = "horizon_client::game::native_hooks::Game<'_>::native_command"
+helper = "command.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "command", ty = "&str", value = "command" },
+  { name = "ran", ty = "&mut bool", value = "ran" },
+]
+
+# Saving the world (HEAD, verified by torchmaster): what was read is saved too.
+[[injection]]
+id = "save"
+kind = "HEAD"
+target = "horizon_client::game::Game<'_>::save_game_metadata"
+helper = "save.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+# A world opens (HEAD, no bindings; verified by torchmaster): the books are read again.
+[[injection]]
+id = "open"
+kind = "HEAD"
+target = "horizon_client::game::chat::Game<'_>::load_world_state"
+helper = "open.rs"
+bindings = []
+
+# BookRightClickHandler.onRenderHUD: with a book in hand, the entry for the block aimed at (over the bars, as appleskin does).
+[[injection]]
+id = "hud"
+kind = "HEAD"
+target = "horizon_client::game::titles::Game<'_>::draw_selected_name"
+helper = "hud.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "self" },
+  { name = "batch", ty = "&mut horizon_client::hud::HudBatch", value = "&mut *batch" },
+]

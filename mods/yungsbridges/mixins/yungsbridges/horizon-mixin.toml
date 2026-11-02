@@ -1,0 +1,35 @@
+[mod]
+id = "yungsbridges"
+version = "0.1.0"
+priority = 100
+
+[compatibility]
+horizon_revision = "142388e1c136e622652ec7505af15d8ad195e041"
+
+# The rules (src/lib.rs), their reading of the decoration region and the
+# decoration with the bridge list, next to the game's decoration.
+[[module]]
+id = "runtime"
+file = "crates/horizon-world/src/worldgen/generator_decoration.rs"
+name = "yungsbridges"
+source = "runtime.rs"
+
+# Decoration::decorate (ChunkGenerator.applyBiomeDecoration): the same, with
+# `yungsbridges:bridge_list` after the surface_structures features, as the
+# mod's Forge biome modifier adds it to the river biomes.
+[[injection]]
+id = "decorate"
+kind = "HEAD"
+cancellable = true
+target = "horizon_world::worldgen::generator_decoration::Decoration::decorate"
+helper = "decorate.rs"
+bindings = [
+  { name = "this", ty = "&Decoration", value = "self" },
+  { name = "data", ty = "&Arc<GeneratorData>", value = "data" },
+  { name = "seed", ty = "i64", value = "seed" },
+  { name = "generation", ty = "WorldGenerationContext", value = "generation" },
+  { name = "worker", ty = "&mut WorkerState", value = "&mut *worker" },
+  { name = "region", ty = "&mut [ProtoChunk; 9]", value = "&mut *region" },
+  { name = "level_random", ty = "&mut dyn super::structure::legacy::PieceRandom", value = "&mut *level_random" },
+  { name = "structures", ty = "Option<&super::generator_structures::StructureState>", value = "structures" },
+]

@@ -1,0 +1,127 @@
+[mod]
+id = "oreberriesreplanted"
+version = "0.1.0"
+priority = 100
+
+[compatibility]
+horizon_revision = "142388e1c136e622652ec7505af15d8ad195e041"
+
+# The game's side: growth, clicks, placement, the touch of a bush, the essence berry.
+[[module]]
+id = "runtime"
+file = "crates/horizon-client/src/game.rs"
+name = "oreberriesreplanted"
+source = "runtime.rs"
+
+# The content root: plain blocks, the bush items without food (content_runtime.rs).
+[[module]]
+id = "content"
+file = "crates/horizon-client/src/mod_content.rs"
+name = "oreberriesreplanted"
+source = "content_runtime.rs"
+
+# The bushes of the underground (worldgen_runtime.rs).
+[[module]]
+id = "worldgen"
+file = "crates/horizon-world/src/worldgen/generator.rs"
+name = "oreberriesreplanted"
+source = "worldgen_runtime.rs"
+
+# While the content root is built, the classes the bushes and vats copy from their templates
+# become plain ones.
+[[injection]]
+id = "inert"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::mod_content::J::rename"
+helper = "inert.rs"
+bindings = [
+  { name = "this", ty = "&mut J", value = "&mut *self" },
+  { name = "r", ty = "&Rename", value = "r" },
+]
+
+[[injection]]
+id = "gameplay"
+kind = "HEAD"
+target = "horizon_client::mod_content::Plan<'_>::override_gameplay"
+helper = "gameplay.rs"
+bindings = [
+  { name = "b", ty = "&NewBlock<'_>", value = "b" },
+  { name = "row", ty = "&mut J", value = "&mut *row" },
+]
+
+# The collision of the bushes (the tables of shapes by state).
+[[injection]]
+id = "collision"
+kind = "HEAD"
+target = "horizon_client::mod_content::Plan<'_>::nbt"
+helper = "collision.rs"
+bindings = [
+  { name = "plan", ty = "&Plan<'_>", value = "&*self" },
+  { name = "tag", ty = "&mut Tag", value = "&mut *tag" },
+]
+
+[[injection]]
+id = "item-parts"
+kind = "RETURN"
+target = "horizon_client::mod_content::Plan<'_>::items"
+helper = "items.rs"
+bindings = [
+  { name = "value", ty = "()", value = "$value" },
+  { name = "map", ty = "&mut J", value = "&mut *map" },
+  { name = "components", ty = "bool", value = "components" },
+]
+
+# The bushes of the underground, after the chunk's own decoration.
+[[injection]]
+id = "generate"
+kind = "RETURN"
+target = "horizon_world::worldgen::generator::GeneratorWorker::decorate"
+helper = "generate.rs"
+bindings = [
+  { name = "value", ty = "Result<DecorateStats, GeneratorError>", value = "$value" },
+  { name = "region", ty = "&mut [ProtoChunk; 9]", value = "&mut *region" },
+]
+
+# OreBerryBushBlock.tick (random ticks) and entityInside.
+[[injection]]
+id = "tick"
+kind = "HEAD"
+target = "horizon_client::game::Game<'_>::tick_blocks"
+helper = "tick.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+# OreBerryBushBlock.attack.
+[[injection]]
+id = "attack"
+kind = "HEAD"
+target = "horizon_client::game::Game<'_>::attack_block"
+helper = "attack.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "pos", ty = "[i32; 3]", value = "pos" },
+]
+
+# OreBerryBushBlock.use: where the game tries the uses of the blocks it knows.
+[[injection]]
+id = "click"
+kind = "HEAD"
+target = "horizon_client::game::composter::Game<'_>::use_composter"
+helper = "click.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "pos", ty = "[i32; 3]", value = "pos" },
+]
+
+# EssenceBerryItem.use, and canSurvive at the placement of a bush item: where the game tries the
+# items that act on their own.
+[[injection]]
+id = "item"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::creatures::Game<'_>::throw_item"
+helper = "item.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "stack", ty = "&ItemStack", value = "stack" },
+]

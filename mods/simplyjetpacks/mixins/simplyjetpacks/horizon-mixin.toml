@@ -1,0 +1,98 @@
+[mod]
+id = "simplyjetpacks"
+version = "0.1.0"
+priority = 100
+
+[compatibility]
+horizon_revision = "142388e1c136e622652ec7505af15d8ad195e041"
+
+# The game's half; made by tools/hnmod.py bundle from native/horizon.rs. Needs forja in the same build (the key channel).
+[[module]]
+id = "runtime"
+file = "crates/horizon-client/src/game.rs"
+name = "simplyjetpacks"
+source = "runtime.rs"
+
+# The content root's half (items.json armour numbers); made by tools/bundle_extra.py.
+[[module]]
+id = "items"
+file = "crates/horizon-client/src/mod_content.rs"
+name = "simplyjetpacks"
+source = "content_runtime.rs"
+
+# JetpackArmorMaterial / JetpackType on the chest templates (defense, no durability, enchantability, foil).
+[[injection]]
+id = "item-numbers"
+kind = "RETURN"
+target = "horizon_client::mod_content::Plan<'_>::items"
+helper = "items.rs"
+bindings = [
+  { name = "value", ty = "()", value = "$value" },
+  { name = "map", ty = "&mut J", value = "&mut *map" },
+  { name = "components", ty = "bool", value = "components" },
+]
+
+# JetpackItem.inventoryTick -> flyUser, for the player this game moves (window client, in-frame host).
+[[injection]]
+id = "before-move"
+kind = "HEAD"
+target = "horizon_client::game::Game<'_>::sync_player_body"
+helper = "before_move.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+# The server's flyUser for each guest (single player's window included): energy, emergency hover, potato.
+[[injection]]
+id = "guests-tick"
+kind = "HEAD"
+target = "horizon_client::game::lan_actions::Game<'_>::tick_guests"
+helper = "guests_tick.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "host", ty = "&mut crate::game::lan::LanHost", value = "&mut *host" },
+]
+
+# flyUser's fallDistance = 0 right before the server checks a guest's fall damage.
+[[injection]]
+id = "guest-fall"
+kind = "HEAD"
+target = "horizon_client::game::lan_actions::Game<'_>::guest_glide_tick"
+helper = "guest_fall.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "host", ty = "&mut LanHost", value = "host" },
+  { name = "conn", ty = "u32", value = "conn" },
+  { name = "fell", ty = "f64", value = "fell" },
+]
+
+# KeybindForgeBusHandler.onKeyInput: engine, hover, emergency hover, charger, throttle.
+[[injection]]
+id = "key"
+kind = "HEAD"
+target = "horizon_client::game::native_hooks::Game<'_>::native_key"
+helper = "key.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "key", ty = "&str", value = "key" },
+  { name = "pressed", ty = "bool", value = "pressed" },
+]
+
+# Options > Mods: the mod and its keys (RegisterKeyMappingsEvent).
+[[injection]]
+id = "list"
+kind = "HEAD"
+target = "horizon_client::game::native_hooks::Game<'_>::native_mods"
+helper = "list.rs"
+bindings = [
+  { name = "mods", ty = "&mut Vec<crate::game::native_hooks::NativeMod>", value = "&mut *mods" },
+]
+
+# HUDHandler (RegisterGuiOverlaysEvent above the hotbar; hidden with F1).
+[[injection]]
+id = "hud"
+kind = "HEAD"
+target = "horizon_client::game::dragon::Game<'_>::draw_boss_bars"
+helper = "hud.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "self" },
+  { name = "batch", ty = "&mut horizon_client::hud::HudBatch", value = "&mut *batch" },
+]

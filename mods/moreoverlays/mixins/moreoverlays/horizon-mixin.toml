@@ -1,0 +1,59 @@
+[mod]
+id = "moreoverlays"
+version = "0.1.0"
+priority = 100
+
+[compatibility]
+horizon_revision = "142388e1c136e622652ec7505af15d8ad195e041"
+
+[[module]]
+id = "runtime"
+file = "crates/horizon-client/src/game.rs"
+name = "moreoverlays"
+source = "runtime.rs"
+
+# Options > Mods lists the mod (and turns it off), with its two keys.
+[[injection]]
+id = "list"
+kind = "HEAD"
+target = "horizon_client::game::native_hooks::Game<'_>::native_mods"
+helper = "list.rs"
+bindings = [
+  { name = "mods", ty = "&mut Vec<crate::game::native_hooks::NativeMod>", value = "&mut *mods" },
+]
+
+# F7 / F9 (the original's key bindings).
+[[injection]]
+id = "key"
+kind = "HEAD"
+target = "horizon_client::game::native_hooks::Game<'_>::native_key"
+helper = "key.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "key", ty = "&str", value = "key" },
+  { name = "pressed", ty = "bool", value = "pressed" },
+]
+
+# Every client tick (ClientTickEvent): the spawn scan and the region text.
+[[injection]]
+id = "tick"
+kind = "HEAD"
+target = "horizon_client::game::native_hooks::Game<'_>::native_tick"
+helper = "tick.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+]
+
+# The overlays' lines join the world's line pass (the fishing line's): the hook calls the function again (a guard
+# lets that inner call through) and adds its lines to what the others made. It only steps in while an overlay is on.
+[[injection]]
+id = "lines"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::fishing::Game<'_>::fishing_line"
+helper = "lines.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" },
+  { name = "alpha", ty = "f64", value = "alpha" },
+  { name = "size", ty = "[u32; 2]", value = "size" },
+]

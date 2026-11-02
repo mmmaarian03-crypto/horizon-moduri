@@ -1,0 +1,195 @@
+[mod]
+id = "torchmaster"
+version = "0.1.0"
+priority = 100
+
+[compatibility]
+horizon_revision = "142388e1c136e622652ec7505af15d8ad195e041"
+
+[[module]]
+id = "runtime"
+file = "crates/horizon-client/src/game.rs"
+name = "torchmaster"
+source = "runtime.rs"
+
+# Natural spawns and chunk generation's animals (MobSpawnEvent.FinalizeSpawn).
+[[injection]]
+id = "natural"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::natural_spawning::Game<'_>::finalize_spawned"
+helper = "natural.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" },
+  { name = "r", ty = "&horizon_client::mobs::spawn_selection::SpawnRequest<'_>", value = "r" },
+]
+
+# Pillager patrols (MobSpawnType.PATROL).
+[[injection]]
+id = "patrol"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::raids::Game<'_>::spawn_event_mob"
+helper = "patrol.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "kind", ty = "&str", value = "kind" },
+  { name = "at", ty = "[f64; 3]", value = "at" },
+  { name = "reason", ty = "horizon_client::mobs::raider::Reason", value = "reason" },
+]
+
+# Phantoms (PhantomSpawner, MobSpawnType.NATURAL).
+[[injection]]
+id = "phantom"
+kind = "WRAP_OPERATION"
+target = "horizon_client::game::stats::Game<'_>::spawn_phantoms_near"
+selector = "self.spawn_mob"
+require = 1
+ordinal = 0
+helper = "phantom.rs"
+bindings = [
+  { name = "game", ty = "&mut Game<'_>", value = "$receiver" },
+  { name = "kind", ty = "&str", value = "$arg0" },
+  { name = "at", ty = "[f64; 3]", value = "$arg1" },
+  { name = "persistent", ty = "bool", value = "$arg2" },
+  { name = "original", ty = "impl FnOnce(&mut Game<'_>, &str, [f64; 3], bool) -> Option<u32>", value = "$operation" },
+]
+
+# Village cats (CatSpawner, MobSpawnType.NATURAL).
+[[injection]]
+id = "cat"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::cat_spawner::Game<'_>::spawn_cat"
+helper = "cat.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "pos", ty = "[i32; 3]", value = "pos" },
+]
+
+# Zombie sieges (VillageSiegeEvent in VillageSiege.tryToSetupSiege).
+[[injection]]
+id = "siege-spot"
+kind = "WRAP_OPERATION"
+target = "horizon_client::game::raids::Game<'_>::try_to_setup_siege"
+selector = "self.find_siege_spawn_pos"
+require = 1
+ordinal = 0
+helper = "siege-spot.rs"
+bindings = [
+  { name = "game", ty = "&mut Game<'_>", value = "$receiver" },
+  { name = "centers", ty = "&std::collections::HashSet<(i32, i32, i32)>", value = "$arg0" },
+  { name = "spot", ty = "[i32; 3]", value = "$arg1" },
+  { name = "original", ty = "impl FnOnce(&mut Game<'_>, &std::collections::HashSet<(i32, i32, i32)>, [i32; 3]) -> Option<[f64; 3]>", value = "$operation" },
+]
+
+[[injection]]
+id = "siege-result"
+kind = "RETURN"
+target = "horizon_client::game::raids::Game<'_>::try_to_setup_siege"
+helper = "siege-result.rs"
+bindings = [{ name = "value", ty = "bool", value = "$value" }]
+
+# The block writes of the mod's blocks, read before the sculk index drains them
+# (tick_sculk_blocks, right after this, calls sculk_sync_index).
+[[injection]]
+id = "writes"
+kind = "HEAD"
+target = "horizon_client::game::sculk::Game<'_>::tick_sculk_entities"
+helper = "writes.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+# The lanterns and the registry's cleanup (block entity phase of the tick).
+[[injection]]
+id = "tick"
+kind = "HEAD"
+target = "horizon_client::game::block_entity_ticks::Game<'_>::tick_block_entities"
+helper = "tick.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[injection]]
+id = "save"
+kind = "HEAD"
+target = "horizon_client::game::Game<'_>::save_game_metadata"
+helper = "save.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[injection]]
+id = "open"
+kind = "HEAD"
+target = "horizon_client::game::chat::Game<'_>::load_world_state"
+helper = "open.rs"
+bindings = []
+
+# Right-click on a Mega Torch or Dread Lamp (EntityBlockingLightBlock.use):
+# one of the block reactions use_hand asks first (it swings and ends the click
+# on true), past its isSecondaryUseActive check.
+[[injection]]
+id = "use"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::copper_golems::Game<'_>::use_golem_statue"
+helper = "use.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "pos", ty = "[i32; 3]", value = "pos" },
+]
+
+# The same click on a client of a server: the range display. The first block
+# reaction remote_block_reacts asks (main hand, past the sneak check).
+[[injection]]
+id = "client-use"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::jukebox::Game<'_>::jukebox_takes"
+helper = "client-use.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" },
+  { name = "pos", ty = "[i32; 3]", value = "pos" },
+]
+
+# A client joins a server (PlayerLoggedInEvent): no range display is shown.
+[[injection]]
+id = "join"
+kind = "HEAD"
+target = "horizon_client::game::remote::Game<'_>::enter_remote_dimension"
+helper = "join.rs"
+bindings = [{ name = "keep_world", ty = "bool", value = "keep_world" }]
+
+# The range display's lines, beside the fishing line's.
+[[injection]]
+id = "lines"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::fishing::Game<'_>::fishing_line"
+helper = "lines.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" },
+  { name = "alpha", ty = "f64", value = "alpha" },
+  { name = "size", ty = "[u32; 2]", value = "size" },
+]
+
+# The Frozen Pearl (FrozenPearlItem.use), where the game uses thrown items.
+[[injection]]
+id = "pearl"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::creatures::Game<'_>::throw_item"
+helper = "pearl.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "stack", ty = "&horizon_client::items::ItemStack", value = "stack" },
+]
+
+# beginnerTooltips: the line under the item's name (the first component line
+# the tooltip asks for that the mod's items have none of).
+[[injection]]
+id = "tooltip"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::item_tooltip::bees_line"
+helper = "tooltip.rs"
+bindings = [
+  { name = "stack", ty = "&crate::items::ItemStack", value = "stack" },
+  { name = "translate", ty = "&dyn Fn(&str) -> Option<String>", value = "translate" },
+]

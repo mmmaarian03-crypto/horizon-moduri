@@ -1,0 +1,9 @@
+[package]
+name = "horizon-carryon"
+version = "0.1.0"
+edition = "2024"
+license = "LGPL-3.0-only"
+publish = false
+description = "Carry On for Horizon (native mod)"
+
+[dependencies]

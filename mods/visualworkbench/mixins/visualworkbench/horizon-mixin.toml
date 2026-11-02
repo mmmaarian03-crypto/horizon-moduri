@@ -1,0 +1,121 @@
+[mod]
+id = "visualworkbench"
+version = "0.1.0"
+priority = 100
+
+[compatibility]
+horizon_revision = "142388e1c136e622652ec7505af15d8ad195e041"
+
+[[module]]
+id = "runtime"
+file = "crates/horizon-client/src/game.rs"
+name = "visualworkbench"
+source = "runtime.rs"
+
+# Every game tick (block entity phase): the open table's grid is its inventory, the items turn to the
+# player, and the contents of a table whose block is gone are spilled.
+[[injection]]
+id = "tick"
+kind = "HEAD"
+target = "horizon_client::game::block_entity_ticks::Game<'_>::tick_block_entities"
+helper = "tick.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+# The menu closes: the 3x3 grid stays in the table instead of going back to the player.
+[[injection]]
+id = "close"
+kind = "HEAD"
+target = "horizon_client::game::Game<'_>::close_container"
+helper = "close.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+# The items hovering over the tables (WorkbenchBlockEntityRenderer); drawn with the campfire's items.
+[[injection]]
+id = "geometry"
+kind = "HEAD"
+target = "horizon_client::game::campfire::Game<'_>::campfire_geometry"
+helper = "geometry.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "self" },
+  { name = "camera", ty = "glam::DVec3", value = "camera" },
+  { name = "out", ty = "&mut Vec<horizon_client::mesher::Vertex>", value = "&mut *out" },
+]
+
+[[injection]]
+id = "save"
+kind = "HEAD"
+target = "horizon_client::game::Game<'_>::save_game_metadata"
+helper = "save.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[injection]]
+id = "open"
+kind = "HEAD"
+target = "horizon_client::game::chat::Game<'_>::load_world_state"
+helper = "open.rs"
+bindings = []
+
+# ---- a server's guests (single player's window is a guest of its integrated server) ----
+
+# The guests' table menus are private to lan_crafting: this module is its child.
+[[module]]
+id = "lan-crafting"
+file = "crates/horizon-client/src/game/lan_crafting.rs"
+name = "visualworkbench"
+source = "lan_crafting.rs"
+
+# The guest's table menu opened or changed (every path ends by sending its content): the table's grid.
+[[injection]]
+id = "guest-content"
+kind = "HEAD"
+target = "horizon_client::game::lan_crafting::Game<'_>::lan_send_table_content"
+helper = "guest_content.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "host", ty = "&mut crate::game::lan::LanHost", value = "&mut *host" },
+  { name = "conn", ty = "u32", value = "conn" },
+]
+
+# The guest's menu closes (AbstractContainerMenu.removed): a held table keeps its grid.
+[[injection]]
+id = "guest-closed"
+kind = "HEAD"
+target = "horizon_client::game::lan_crafting::Game<'_>::lan_crafting_closed"
+helper = "guest_closed.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "host", ty = "&mut crate::game::lan::LanHost", value = "&mut *host" },
+  { name = "conn", ty = "u32", value = "conn" },
+  { name = "window", ty = "Option<i32>", value = "window" },
+]
+
+# The guest leaves: a held table keeps its grid (before the grids go back to his inventory).
+[[injection]]
+id = "guest-left"
+kind = "HEAD"
+target = "horizon_client::game::lan_crafting::Game<'_>::lan_crafting_left"
+helper = "guest_left.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "host", ty = "&mut crate::game::lan::LanHost", value = "&mut *host" },
+  { name = "g", ty = "&horizon_client::lan::guest::Guest", value = "&*g" },
+]
+
+# The guests' tick on a server: held tables copied (or kept when the block is gone), tables to the clients.
+[[injection]]
+id = "guests-tick"
+kind = "HEAD"
+target = "horizon_client::game::lan_actions::Game<'_>::tick_guests"
+helper = "guests_tick.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "host", ty = "&mut crate::game::lan::LanHost", value = "&mut *host" },
+]
+
+# Every Game's tick (the window's too): a server's client takes visualworkbench:tables.
+[[injection]]
+id = "client-tick"
+kind = "HEAD"
+target = "horizon_client::game::native_hooks::Game<'_>::native_tick"
+helper = "client_tick.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]

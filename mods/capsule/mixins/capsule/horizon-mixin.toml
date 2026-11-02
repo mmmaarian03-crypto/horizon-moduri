@@ -1,0 +1,97 @@
+[mod]
+id = "capsule"
+version = "0.1.0"
+priority = 100
+
+[compatibility]
+horizon_revision = "142388e1c136e622652ec7505af15d8ad195e041"
+
+[[module]]
+id = "runtime"
+file = "crates/horizon-client/src/game.rs"
+name = "capsule"
+source = "runtime.rs"
+
+# CapsuleItem.use: every use of an item in the air, and on a block after the block's own use.
+[[injection]]
+id = "use"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::creatures::Game<'_>::throw_item"
+helper = "use.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "stack", ty = "&horizon_client::items::ItemStack", value = "stack" },
+]
+
+# Thrown capsules (onEntityItemUpdate, RecallEnchant), the in-frame host's capsules (inventoryTick), starters.
+[[injection]]
+id = "tick"
+kind = "HEAD"
+target = "horizon_client::game::block_entity_ticks::Game<'_>::tick_block_entities"
+helper = "tick.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+# The guests' capsules (single player's window included) and their starter capsule.
+[[injection]]
+id = "guests"
+kind = "HEAD"
+target = "horizon_client::game::lan_actions::Game<'_>::tick_guests"
+helper = "guests.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "host", ty = "&mut crate::game::lan::LanHost", value = "&mut *host" },
+]
+
+# DispenseCapsuleBehavior (capture bases and dispensers).
+[[injection]]
+id = "dispense"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::dispenser::Game<'_>::dispense_item"
+helper = "dispense.rs"
+bindings = [
+  { name = "game", ty = "&mut Game<'_>", value = "&mut *self" },
+  { name = "pos", ty = "Pos", value = "pos" },
+  { name = "facing", ty = "Direction", value = "facing" },
+  { name = "stack", ty = "&ItemStack", value = "&stack" },
+]
+
+# CapsuleItem.appendHoverText.
+[[injection]]
+id = "tooltip"
+kind = "RETURN"
+target = "horizon_client::game::stations::Game<'_>::stack_tooltip"
+helper = "tooltip.rs"
+bindings = [
+  { name = "value", ty = "Vec<(horizon_client::text::Text, u32)>", value = "$value" },
+  { name = "game", ty = "&crate::game::Game<'_>", value = "self" },
+  { name = "stack", ty = "&ItemStack", value = "stack" },
+]
+
+# The capsule's tag and model reach the window client.
+[[injection]]
+id = "stack-net"
+kind = "RETURN"
+target = "horizon_client::lan::guest::stack_to_network"
+helper = "stack_net.rs"
+bindings = [
+  { name = "value", ty = "Option<Stack>", value = "$value" },
+  { name = "s", ty = "&Option<ItemStack>", value = "s" },
+]
+
+# Saving the world: the counter of capsule names and the players who got their starter.
+[[injection]]
+id = "save"
+kind = "HEAD"
+target = "horizon_client::game::Game<'_>::save_game_metadata"
+helper = "save.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+# A world opens: forget the previous world's state.
+[[injection]]
+id = "open"
+kind = "HEAD"
+target = "horizon_client::game::chat::Game<'_>::load_world_state"
+helper = "open.rs"
+bindings = []

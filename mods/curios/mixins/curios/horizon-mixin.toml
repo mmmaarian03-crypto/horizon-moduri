@@ -1,0 +1,305 @@
+[mod]
+id = "curios"
+version = "0.1.0"
+priority = 100
+
+[compatibility]
+horizon_revision = "142388e1c136e622652ec7505af15d8ad195e041"
+
+# The rules (engine) and the adapter, as crate::game::curios (the API other native mods call).
+[[module]]
+id = "runtime"
+file = "crates/horizon-client/src/game.rs"
+name = "curios"
+source = "runtime.rs"
+
+# ---- world, ticks, death ----
+
+# A world opens: the per-player state and mirrors of the last one go; the mod channel and menu kind.
+[[injection]]
+id = "open"
+kind = "HEAD"
+target = "horizon_client::game::chat::Game<'_>::load_world_state"
+helper = "open.rs"
+bindings = []
+
+# LivingTickEvent of every guest (the single player window is one): the guests' tick, not while
+# paused, before forja syncs the menus (lan_living_flags comes after it in the same pass).
+[[injection]]
+id = "guests-tick"
+kind = "HEAD"
+target = "horizon_client::game::lan_actions::Game<'_>::tick_guests"
+helper = "guests_tick.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "host", ty = "&mut crate::game::lan::LanHost", value = "&mut *host" },
+]
+
+# Every pass, paused or not, before forja checks its menus: the mirrors a save took out go back.
+[[injection]]
+id = "guests-pass"
+kind = "HEAD"
+priority = 400
+target = "horizon_client::game::lan_actions::Game<'_>::lan_living_flags"
+helper = "guests_pass.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "host", ty = "&mut crate::game::lan::LanHost", value = "&mut *host" },
+]
+
+# LivingTickEvent of the in-frame host.
+[[injection]]
+id = "host-tick"
+kind = "HEAD"
+target = "horizon_client::game::Game<'_>::tick_blocks"
+helper = "host_tick.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+# A server's client: the worn curios its server sends (SPacketSyncCurios to the player).
+[[injection]]
+id = "client-tick"
+kind = "HEAD"
+target = "horizon_client::game::native_hooks::Game<'_>::native_tick"
+helper = "client_tick.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+# LivingDropsEvent: Player.dropEquipment of the player who died (host, or a guest as the guest).
+[[injection]]
+id = "death"
+kind = "HEAD"
+target = "horizon_client::game::Game<'_>::drop_inventory"
+helper = "death.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "at", ty = "[f64; 3]", value = "at" },
+]
+
+# PlayerXpEvent.PickupXp: mending curios take the orb first.
+[[injection]]
+id = "mending"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::enchant_effects::Game<'_>::mending"
+helper = "mending.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "amount", ty = "u32", value = "amount" },
+]
+
+# MixinPiglinAi.isWearingGold.
+[[injection]]
+id = "piglins"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::piglins::Game<'_>::wearing_gold"
+helper = "piglins.rs"
+bindings = [{ name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }]
+
+# MixinLivingEntity.canFreeze.
+[[injection]]
+id = "freeze"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::Game<'_>::wears_freeze_immune"
+helper = "freeze.rs"
+bindings = [{ name = "game", ty = "&crate::game::Game<'_>", value = "self" }]
+
+# PlayerInteractEvent.RightClickItem: a curio used in the air goes into its slot.
+[[injection]]
+id = "right-click"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::creatures::Game<'_>::throw_item"
+helper = "right_click.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "stack", ty = "&horizon_client::items::ItemStack", value = "stack" },
+]
+
+# ItemTooltipEvent: "Slot: Ring" and the modifiers when worn.
+[[injection]]
+id = "tooltip"
+kind = "RETURN"
+target = "horizon_client::game::stations::Game<'_>::stack_tooltip"
+helper = "tooltip.rs"
+bindings = [
+  { name = "value", ty = "Vec<(horizon_client::text::Text, u32)>", value = "$value" },
+  { name = "game", ty = "&crate::game::Game<'_>", value = "self" },
+  { name = "stack", ty = "&ItemStack", value = "stack" },
+]
+
+# /curios.
+[[injection]]
+id = "command"
+kind = "HEAD"
+target = "horizon_client::game::native_hooks::Game<'_>::native_command"
+helper = "command.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "command", ty = "&str", value = "command" },
+  { name = "ran", ty = "&mut bool", value = "ran" },
+]
+
+# Options > Mods: the Curios key.
+[[injection]]
+id = "mods"
+kind = "HEAD"
+target = "horizon_client::game::native_hooks::Game<'_>::native_mods"
+helper = "mods.rs"
+bindings = [{ name = "mods", ty = "&mut Vec<crate::game::native_hooks::NativeMod>", value = "&mut *mods" }]
+
+# The Curios key (G): open while playing, close on its screen.
+[[injection]]
+id = "key"
+kind = "HEAD"
+target = "horizon_client::game::native_hooks::Game<'_>::native_key"
+helper = "key.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "key", ty = "&str", value = "key" },
+  { name = "pressed", ty = "bool", value = "pressed" },
+]
+
+# ---- the Curios menu (CuriosContainerV2) ----
+
+# Every click of the open Curios menu (after the forja client hook, priority 300; before other mods).
+[[injection]]
+id = "menu-ops"
+kind = "HEAD"
+cancellable = true
+priority = 200
+target = "horizon_client::game::Game<'_>::menu_ops"
+helper = "menu_ops.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "ops", ty = "&[(Option<usize>, i32, horizon_client::menu::Input)]", value = "ops" },
+]
+
+# A drag never adds a slot the menu refuses.
+[[injection]]
+id = "drag-accepts"
+kind = "HEAD"
+cancellable = true
+priority = 200
+target = "horizon_client::game::Game<'_>::quick_craft_accepts"
+helper = "drag_accepts.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "slot", ty = "usize", value = "slot" },
+  { name = "ty", ty = "i32", value = "ty" },
+  { name = "dragged", ty = "usize", value = "dragged" },
+]
+
+# The in-frame host menu closes (a guest menu closes through forja).
+[[injection]]
+id = "close"
+kind = "HEAD"
+target = "horizon_client::game::Game<'_>::close_container"
+helper = "close.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+# The in-frame host mirror holds no items while the world is written.
+[[injection]]
+id = "save-level"
+kind = "HEAD"
+target = "horizon_client::game::Game<'_>::save_level"
+helper = "save_level.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[injection]]
+id = "save-meta"
+kind = "HEAD"
+target = "horizon_client::game::Game<'_>::save_game_metadata"
+helper = "save_meta.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+# Hoppers and droppers never reach a mirror.
+[[injection]]
+id = "move-in"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::machines::Game<'_>::try_move_in_item"
+helper = "move_in.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "view", ty = "&View", value = "view" },
+  { name = "stack", ty = "&ItemStack", value = "&stack" },
+]
+
+[[injection]]
+id = "take-one"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::machines::Game<'_>::take_one"
+helper = "take_one.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" },
+  { name = "view", ty = "&View", value = "view" },
+]
+
+# ---- the Curios screen (CuriosScreenV2) ----
+
+[[injection]]
+id = "height"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::machines::Game<'_>::screen_height"
+helper = "height.rs"
+bindings = [{ name = "game", ty = "&crate::game::Game<'_>", value = "self" }]
+
+[[injection]]
+id = "slot-position"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::machines::Game<'_>::machine_slot_position"
+helper = "slot_position.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "self" },
+  { name = "i", ty = "usize", value = "i" },
+]
+
+[[injection]]
+id = "draw"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::machines::Game<'_>::draw_machine_screen"
+helper = "draw.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "self" },
+  { name = "batch", ty = "&mut horizon_client::hud::HudBatch", value = "&mut *batch" },
+  { name = "ox", ty = "f32", value = "ox" },
+  { name = "oy", ty = "f32", value = "oy" },
+]
+
+# The buttons and tooltips over the slots; the Curios button on the inventory screens.
+[[injection]]
+id = "draw-over"
+kind = "HEAD"
+target = "horizon_client::game::Game<'_>::draw_carried"
+helper = "draw_over.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" },
+  { name = "batch", ty = "&mut horizon_client::hud::HudBatch", value = "&mut *batch" },
+]
+
+[[injection]]
+id = "mouse"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::tweaks::Game<'_>::sort_mouse_press"
+helper = "mouse.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "button", ty = "winit::event::MouseButton", value = "button" },
+]
+
+[[injection]]
+id = "wheel"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::tweaks::Game<'_>::tweak_scroll"
+helper = "wheel.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "delta", ty = "f32", value = "delta" },
+]

@@ -1,0 +1,155 @@
+[mod]
+id = "naturescompass"
+version = "0.1.0"
+priority = 100
+
+[compatibility]
+horizon_revision = "142388e1c136e622652ec7505af15d8ad195e041"
+
+[[module]]
+id = "runtime"
+file = "crates/horizon-client/src/game.rs"
+name = "naturescompass"
+source = "runtime.rs"
+
+# Item.use: every use of an item in the air or on a block, after the block's own use (escape_rope, morebows, torchmaster).
+[[injection]]
+id = "use"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::creatures::Game<'_>::throw_item"
+helper = "use.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "stack", ty = "&horizon_client::items::ItemStack", value = "stack" },
+]
+
+# Once per game tick (escape_rope): the biome search works, the compasses keep their target.
+[[injection]]
+id = "tick"
+kind = "HEAD"
+target = "horizon_client::game::Game<'_>::tick_blocks"
+helper = "tick.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+# The guests' tick on the server (single player's window is one since #1514): each guest's search, teleport and compasses,
+# as the guest.
+[[injection]]
+id = "guests-tick"
+kind = "HEAD"
+target = "horizon_client::game::lan_actions::Game<'_>::tick_guests"
+helper = "guests_tick.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "host", ty = "&mut crate::game::lan::LanHost", value = "&mut *host" },
+]
+
+# Every Game's tick, the window's too: the list goes with its screen; a server's client opens the list its server asks for
+# (forja channel naturescompass:open).
+[[injection]]
+id = "client-tick"
+kind = "HEAD"
+target = "horizon_client::game::native_hooks::Game<'_>::native_tick"
+helper = "client_tick.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+# The HUD lines over the bars (appleskin).
+[[injection]]
+id = "hud"
+kind = "HEAD"
+target = "horizon_client::game::titles::Game<'_>::draw_selected_name"
+helper = "hud.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "self" },
+  { name = "batch", ty = "&mut horizon_client::hud::HudBatch", value = "&mut *batch" },
+]
+
+# The list screen takes the Advancements screen (betteradvancements hooks the same functions, lower priority).
+[[injection]]
+id = "draw"
+kind = "HEAD"
+cancellable = true
+priority = 1000
+target = "horizon_client::game::advancements_screen::Game<'_>::draw_advancements"
+helper = "draw.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "batch", ty = "&mut horizon_client::hud::HudBatch", value = "&mut *batch" },
+]
+
+[[injection]]
+id = "mouse"
+kind = "HEAD"
+cancellable = true
+priority = 1000
+target = "horizon_client::game::advancements_screen::Game<'_>::advancements_mouse"
+helper = "mouse.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "pressed", ty = "bool", value = "pressed" },
+  { name = "size", ty = "[u32; 2]", value = "size" },
+]
+
+[[injection]]
+id = "drag"
+kind = "HEAD"
+cancellable = true
+priority = 1000
+target = "horizon_client::game::advancements_screen::Game<'_>::advancements_drag"
+helper = "drag.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[injection]]
+id = "scroll"
+kind = "HEAD"
+cancellable = true
+priority = 1000
+target = "horizon_client::game::advancements_screen::Game<'_>::advancements_scroll"
+helper = "scroll.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "y", ty = "f32", value = "y" },
+]
+
+# Keys (JEI): the first step of key_pressed; Break(true) returns before the screen's own keys.
+[[injection]]
+id = "key"
+kind = "HEAD"
+cancellable = true
+priority = 1000
+target = "horizon_client::game::tweaks::Game<'_>::sort_key_press"
+helper = "key.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "key", ty = "winit::keyboard::KeyCode", value = "key" },
+]
+
+# The search field takes the typed keys (JEI): recipe_search_focused says yes, recipe_key receives them.
+[[injection]]
+id = "focused"
+kind = "HEAD"
+cancellable = true
+priority = 1000
+target = "horizon_client::game::recipe_book::Game<'_>::recipe_search_focused"
+helper = "focused.rs"
+bindings = [{ name = "game", ty = "&crate::game::Game<'_>", value = "self" }]
+
+[[injection]]
+id = "typing"
+kind = "HEAD"
+cancellable = true
+priority = 1000
+target = "horizon_client::game::recipe_book::Game<'_>::recipe_key"
+helper = "typing.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "event", ty = "&winit::event::KeyEvent", value = "event" },
+]
+
+# A world opens (HEAD, no bindings; verified by torchmaster).
+[[injection]]
+id = "open"
+kind = "HEAD"
+target = "horizon_client::game::chat::Game<'_>::load_world_state"
+helper = "open.rs"
+bindings = []
