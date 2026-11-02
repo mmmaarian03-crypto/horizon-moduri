@@ -54,7 +54,7 @@ helper = "tick.rs"
 bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
 
 # onCarryTick of every guest on the server (single player's window is one since #1514), and the sync of what it carries to
-# its client (forja channel carryon:sync): the guests' tick, not while single player is paused.
+# its client (foundry channel carryon:sync): the guests' tick, not while single player is paused.
 [[injection]]
 id = "guests-tick"
 kind = "HEAD"

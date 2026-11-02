@@ -1,9 +1,0 @@
-[package]
-name = "horizon-pornire_rapida"
-version = "0.1.0"
-edition = "2024"
-license = "MIT"
-publish = false
-description = "Quick start: a native mod for Horizon"
-
-[dependencies]

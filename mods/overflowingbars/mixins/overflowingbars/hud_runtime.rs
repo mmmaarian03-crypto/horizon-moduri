@@ -21,7 +21,7 @@ use std::sync::atomic::{AtomicBool, AtomicI32, Ordering};
 #[allow(dead_code)]
 mod engine {
     // Overflowing Bars (Fuzs, 1.20.1 build 8.0.1) for Horizon: the rules, without any game code.
-// Source of every rule: surse/overflowingbars (branch 1.20.1): `HealthBarRenderer`, `ArmorBarRenderer`,
+// Source of every rule: sources/overflowingbars (branch 1.20.1): `HealthBarRenderer`, `ArmorBarRenderer`,
 // `BarOverlayRenderer`, `RowCountRenderer`, `ChatOffsetHelper`, `GuiOverlayHandler`, `ClientConfig`;
 // the values are the pack's `config/overflowingbars-client.toml`.
 // This file is pasted into the game twice: as `crate::game::overflowingbars::engine` and inside the module

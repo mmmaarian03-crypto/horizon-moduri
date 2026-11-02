@@ -1,5 +1,5 @@
 // Enchantment Descriptions (Darkhax, 1.20.1 build 17.1.21) for Horizon: the rules, without any game code.
-// Source of every rule: surse/enchdesc (branch 1.20.1) `EnchDescCommon.onItemTooltip`, `DescriptionManager`,
+// Source of every rule: sources/enchdesc (branch 1.20.1) `EnchDescCommon.onItemTooltip`, `DescriptionManager`,
 // `ConfigSchema`; the values are the pack's `config/enchdesc.json`.
 // This file is pasted into the game as `crate::game::enchdesc::engine` (tools/hnmod.py bundle) and is also the
 // `horizon_enchdesc` crate the tests use: plain Rust, no game types, no inner attributes (`#![...]`).

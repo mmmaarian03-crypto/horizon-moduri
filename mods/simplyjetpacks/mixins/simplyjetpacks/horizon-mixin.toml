@@ -6,7 +6,7 @@ priority = 100
 [compatibility]
 horizon_revision = "142388e1c136e622652ec7505af15d8ad195e041"
 
-# The game's half; made by tools/hnmod.py bundle from native/horizon.rs. Needs forja in the same build (the key channel).
+# The game's half; made by tools/hnmod.py bundle from native/horizon.rs. Needs foundry in the same build (the key channel).
 [[module]]
 id = "runtime"
 file = "crates/horizon-client/src/game.rs"

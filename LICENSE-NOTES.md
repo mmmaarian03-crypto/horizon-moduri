@@ -44,7 +44,7 @@ here.
 - `escape_rope`: AFL-3.0 as its jar declares (its Modrinth page says MIT); the mod has no public source.
 - `a_good_place`: MIT as its authors declare (gradle.properties, mods.toml, Modrinth); the repository has no LICENSE
   file, so the MIT text here names them.
-- `ecran_incarcare` draws a reduction of Horizon's icon, under Horizon's MIT licence (its LICENSE includes it).
+- `loading_screen` draws a reduction of Horizon's icon, under Horizon's MIT licence (its LICENSE includes it).
 
 ## By licence
 
@@ -60,5 +60,5 @@ here.
 | `LGPL-3.0-only` | `ae2`, `carryon`, `fallingtree`, `hats`, `itemphysic`, `tlc`, `travelerstitles`, `waterdripsound`, `yungsbridges` |
 | `LGPL-3.0-or-later` | `comforts`, `curios`, `polymorph`, `smoothswapping` |
 | `LicenseRef-DBaJ-NC` | `betteradvancements` |
-| `MIT` | `a_good_place`, `capsule`, `clumps`, `ecran_incarcare`, `enderore`, `enderstorage`, `forja`, `hangglider`, `modonomicon`, `moreoverlays`, `neat`, `netherending`, `oreberriesreplanted`, `pornire_rapida`, `presencefootsteps`, `simplyjetpacks`, `soulshards`, `storagedrawers`, `taburi_creative`, `torchmaster` |
+| `MIT` | `a_good_place`, `capsule`, `clumps`, `creative_tabs`, `enderore`, `enderstorage`, `fast_start`, `foundry`, `hangglider`, `loading_screen`, `modonomicon`, `moreoverlays`, `neat`, `netherending`, `oreberriesreplanted`, `presencefootsteps`, `simplyjetpacks`, `soulshards`, `storagedrawers`, `torchmaster` |
 | `MPL-2.0` | `cavedust`, `easyanvils`, `enchantinginfuser`, `leavesbegone`, `overflowingbars`, `visualworkbench` |

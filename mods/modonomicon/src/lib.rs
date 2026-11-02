@@ -1,4 +1,4 @@
-// Modonomicon for Horizon: the rules, without any game code (tools/nou_mod.py skeleton).
+// Modonomicon for Horizon: the rules, without any game code (tools/new_mod.py skeleton).
 // Written from the original mod's behaviour and the pack's config; cite the source of every value.
 // This file is pasted into the game as `crate::game::modonomicon::engine` (tools/hnmod.py bundle) and is also the
 // `horizon_modonomicon` crate the tests use: plain Rust, no game types, no inner attributes (`#![...]`).

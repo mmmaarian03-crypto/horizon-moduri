@@ -285,7 +285,7 @@ fn one_player_at_a_time_takes_a_tables_grid() {
 
 #[test]
 fn the_tables_a_server_sends_its_clients_round_trip() {
-    // A server's client draws the tables from the world file's text the server sends (forja channel
+    // A server's client draws the tables from the world file's text the server sends (foundry channel
     // `visualworkbench:tables`): the same `save` / `load`.
     let mut s: Store<String> = Store::default();
     let mut g: Vec<Option<String>> = vec![None; 9];

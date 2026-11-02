@@ -1,5 +1,5 @@
 // Traveler's Titles (YUNG, 1.20 build 4.0.2 for 1.20.1) for Horizon: the rules, without any game code.
-// Source of every rule: surse/travelerstitles (branch 1.20): `TitleRenderManager`, `TitleRenderer`, `ConfigModule`,
+// Source of every rule: sources/travelerstitles (branch 1.20): `TitleRenderManager`, `TitleRenderer`, `ConfigModule`,
 // `SoundModule`, `TagModule`; the values are the pack's `config/travelerstitles-forge-1_20.toml`.
 // This file is pasted into the game as `crate::game::travelerstitles::engine` (tools/hnmod.py bundle) and is also the
 // `horizon_travelerstitles` crate the tests use: plain Rust, no game types, no inner attributes (`#![...]`).

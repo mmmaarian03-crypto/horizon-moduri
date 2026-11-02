@@ -27,7 +27,7 @@ fn tiers_follow_tuned_tiers_json() {
     assert_eq!(tier(1024).cooldown, 40);
     assert!(tier(1024).check_redstone && !tier(1024).check_player);
     // The jar's Tier.generateDefaults equals the file.
-    use horizon_soulshards::date_jar::*;
+    use horizon_soulshards::jar_data::*;
     let t = |x: (i32, bool, bool, bool, i32, i32)| Tier {
         kill_requirement: x.0,
         check_player: x.1,

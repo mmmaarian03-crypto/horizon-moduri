@@ -9,5 +9,5 @@ description = "EnderStorage for Horizon (native mod)"
 [dependencies]
 
 [dev-dependencies]
-# The tests check the tank against forja's FluidTank (the game reaches the tank through forja).
-horizon-forja = { path = "../forja" }
+# The tests check the tank against foundry's FluidTank (the game reaches the tank through foundry).
+horizon-foundry = { path = "../foundry" }

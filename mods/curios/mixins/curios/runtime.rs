@@ -1,7 +1,7 @@
 // Curios API inside Horizon's game (nightly 142388e1c). The rules are the engine (src/lib.rs); this
 // part reads the game. It is also the shared API other native mods call (`crate::game::curios::...`,
-// see its README); the Curios screen is a forja menu (crate::game::forja, mods/forja/API.md
-// section 10), so this mod needs forja in the same build.
+// see its README); the Curios screen is a foundry menu (crate::game::foundry, mods/foundry/API.md
+// section 10), so this mod needs foundry in the same build.
 #[allow(unused_imports)]
 use super::{Game, Result, Screen, lan::LanHost};
 use horizon_client::{
@@ -18,7 +18,7 @@ use std::sync::{Arc, Mutex};
 #[allow(dead_code)]
 pub(in crate::game) mod engine {
     // Curios for Horizon: the rules, without any game code.
-// Ported from Curios API 5.14.1+1.20.1 (LGPL-3.0-or-later, sources in surse\curios, branch 1.20.x,
+// Ported from Curios API 5.14.1+1.20.1 (LGPL-3.0-or-later, sources in sources/curios, branch 1.20.x,
 // commit a91da6b "5.14.1"): slot types (CuriosSlotManager, LegacySlotManager, SlotType.Builder,
 // CuriosEntityManager), the inventory (CurioInventoryCapability, CurioStacksHandler,
 // DynamicStackHandler), the menu (CuriosContainerV2 + AbstractContainerMenu.doClick), the drops
@@ -58,9 +58,9 @@ pub mod config {
     pub const MAX_SLOTS_PER_PAGE: i32 = 48;
 }
 
-/// Plain data of the 1.20.1 jar (tools/date_jar.py), the part the port uses.
+/// Plain data of the 1.20.1 jar (tools/jar_data.py), the part the port uses.
 #[allow(dead_code)]
-pub mod date_jar {
+pub mod jar_data {
     /// `SlotTypePreset` (id, priority): `getMessageBuilder` = priority + icon `curios:slot/empty_<id>_slot`.
     pub const SLOT_TYPE_PRESETS: [(&str, i32); 10] = [
         ("head", 40),
@@ -168,7 +168,7 @@ impl SlotBuilder {
             native_gui: None,
             cosmetic: None,
             render_toggle: None,
-            icon: date_jar::DEFAULT_ICON.to_owned(),
+            icon: jar_data::DEFAULT_ICON.to_owned(),
             drop_rule: DropRule::Default,
             validators: None,
         }
@@ -254,7 +254,7 @@ impl SlotBuilder {
         size += self.size_mod;
         SlotType {
             id: self.id.clone(),
-            order: self.order.unwrap_or(date_jar::DEFAULT_ORDER),
+            order: self.order.unwrap_or(jar_data::DEFAULT_ORDER),
             size: size.max(0),
             native_gui: self.native_gui.unwrap_or(true),
             cosmetic: self.cosmetic.unwrap_or(false),
@@ -421,7 +421,7 @@ impl LegacyMessage {
     }
     /// `SlotTypePreset.X.getMessageBuilder()` (None: not a preset id).
     pub fn preset(id: &str) -> Option<Self> {
-        let (pid, priority) = date_jar::SLOT_TYPE_PRESETS.iter().find(|(p, _)| *p == id)?;
+        let (pid, priority) = jar_data::SLOT_TYPE_PRESETS.iter().find(|(p, _)| *p == id)?;
         Some(LegacyMessage {
             priority: Some(*priority),
             icon: Some(format!("curios:slot/empty_{pid}_slot")),
@@ -2049,7 +2049,7 @@ pub fn equip_from_use<S: Stack>(
 }
 
 // =================================================================================================
-// What the client's screen needs (a section of the forja menu), as text lines
+// What the client's screen needs (a section of the foundry menu), as text lines
 // =================================================================================================
 
 /// The screen of the open Curios menu, as the server sends it.
@@ -2134,7 +2134,7 @@ impl View {
     }
 }
 
-/// Buttons of the screen (`forja::MenuInput::Button` ids).
+/// Buttons of the screen (`foundry::MenuInput::Button` ids).
 pub mod button {
     /// `CPacketPage(next)`: arg 1 next, 0 previous.
     pub const PAGE: u32 = 1;
@@ -2167,11 +2167,11 @@ pub mod screen {
 /// `CuriosScreen.getButtonOffset(isCreative)` + `GuiEventHandler`'s y offset (83 / 68): the Curios
 /// button's corner relative to the screen's left/top.
 pub fn button_offset(creative: bool) -> (i32, i32) {
-    let corner = date_jar::BUTTON_CORNERS
+    let corner = jar_data::BUTTON_CORNERS
         .iter()
         .find(|c| c.0 == config::CLIENT_BUTTON_CORNER)
         .copied()
-        .unwrap_or(date_jar::BUTTON_CORNERS[0]);
+        .unwrap_or(jar_data::BUTTON_CORNERS[0]);
     if creative {
         (corner.3 + config::CLIENT_CREATIVE_BUTTON_XOFFSET, corner.4 + config::CLIENT_CREATIVE_BUTTON_YOFFSET + 68)
     } else {
@@ -2362,7 +2362,7 @@ mod kit_notice {
     }
     /// `player.displayClientMessage(text, false)`. For a guest this is a chat line; the host
     /// gets the same action-bar line (this pin has no plain host-side chat append without
-    /// going through `chat.rs` internals; see TRADUCATOR.md).
+    /// going through `chat.rs` internals; see TRANSLATOR.md).
     pub(super) fn chat(g: &mut Game<'_>, text: String) {
         send(g, text, false);
     }
@@ -2408,7 +2408,7 @@ mod kit_sound {
     }
 }
 
-/// The forja menu kind of the Curios screen (`curios:curios_container_v2`).
+/// The foundry menu kind of the Curios screen (`curios:curios_container_v2`).
 const MENU_KIND: &str = "curios:menu";
 /// The mod channel for what a client asks outside the menu (open, commands).
 const NET: &str = "curios:net";
@@ -3059,19 +3059,19 @@ fn curios_register() {
     if REGISTERED.swap(true, Ordering::Relaxed) {
         return;
     }
-    super::forja::register_server_channel(NET, curios_net_server);
-    super::forja::register_menu(super::forja::MenuKind {
+    super::foundry::register_server_channel(NET, curios_net_server);
+    super::foundry::register_menu(super::foundry::MenuKind {
         enter: Some(curios_menu_enter),
         leave: Some(curios_menu_leave),
         sections: Some(curios_menu_sections),
         input: Some(curios_menu_input),
         closed: Some(curios_menu_closed),
         valid: Some(curios_menu_valid),
-        ..super::forja::MenuKind::new(MENU_KIND)
+        ..super::foundry::MenuKind::new(MENU_KIND)
     });
 }
 
-// ---- forja menu kind ----
+// ---- foundry menu kind ----
 
 fn curios_menu_enter(game: &mut Game<'_>, conn: u32, p: [i32; 3]) {
     if !own_mirror(game, conn, p) {
@@ -3098,8 +3098,8 @@ fn curios_menu_leave(game: &mut Game<'_>, conn: u32, p: [i32; 3]) {
 fn curios_menu_sections(_game: &mut Game<'_>, conn: u32, _p: [i32; 3]) -> Vec<Vec<u8>> {
     players(|m| m.get(&conn).and_then(|r| r.menu.as_ref()).map(|mm| vec![mm.view.encode()])).unwrap_or_default()
 }
-fn curios_menu_input(game: &mut Game<'_>, _conn: u32, _p: [i32; 3], input: &super::forja::MenuInput) -> bool {
-    let super::forja::MenuInput::Button { id, arg } = input else { return false };
+fn curios_menu_input(game: &mut Game<'_>, _conn: u32, _p: [i32; 3], input: &super::foundry::MenuInput) -> bool {
+    let super::foundry::MenuInput::Button { id, arg } = input else { return false };
     game.curios_button(*id, *arg)
 }
 fn curios_menu_valid(game: &Game<'_>, conn: u32, p: [i32; 3]) -> bool {
@@ -3129,7 +3129,7 @@ fn curios_net_server(game: &mut Game<'_>, host: &mut LanHost, conn: u32, body: &
     }
 }
 
-// The client's copy of the screen (decoded once per generation of the forja sections).
+// The client's copy of the screen (decoded once per generation of the foundry sections).
 thread_local! {
     static CLIENT_VIEW: std::cell::RefCell<Option<(u64, Option<engine::View>)>> = const { std::cell::RefCell::new(None) };
 }
@@ -3204,7 +3204,7 @@ impl Game<'_> {
         self.curios_player_tick();
         self.curios_refresh_menu();
     }
-    /// HEAD `lan_living_flags` (every tick_lan pass, paused or not, the hub in hand, before forja
+    /// HEAD `lan_living_flags` (every tick_lan pass, paused or not, the hub in hand, before foundry
     /// checks its menus): the mod channel and menu kind, the mirrors a save took out, who left.
     pub(super) fn curios_guests_pass(&mut self, host: &mut LanHost) {
         if self.remote.is_some() {
@@ -3345,7 +3345,7 @@ impl Game<'_> {
             let first = players(|m| !std::mem::replace(&mut m.entry(key).or_default().synced, true));
             if first || !changes.is_empty() {
                 let list = worn(self);
-                super::forja::send_to_acting(self, SYNC, &sync_bytes(&list));
+                super::foundry::send_to_acting(self, SYNC, &sync_bytes(&list));
             }
         }
     }
@@ -3355,7 +3355,7 @@ impl Game<'_> {
         if self.remote.is_none() {
             return;
         }
-        for body in super::forja::client_take(SYNC) {
+        for body in super::foundry::client_take(SYNC) {
             if let Some(list) = sync_list(&body) {
                 *CLIENT_WORN.lock().unwrap_or_else(|e| e.into_inner()) = list;
             }
@@ -3385,7 +3385,7 @@ impl Game<'_> {
             let f = f64::from(r.next_float() * 0.5);
             let f1 = f64::from(r.next_float() * std::f32::consts::TAU);
             let v = [-f1.sin() * f, 0.2, f1.cos() * f];
-            self.spawn_item(stack, at, v, engine::date_jar::DROP_PICKUP_DELAY);
+            self.spawn_item(stack, at, v, engine::jar_data::DROP_PICKUP_DELAY);
         }
     }
 
@@ -3563,10 +3563,10 @@ impl Game<'_> {
         let Some(parsed) = engine::parse_command(command) else { return };
         *ran = true;
         if self.remote.is_some() {
-            if super::forja::server_has_forja() {
+            if super::foundry::server_has_foundry() {
                 let mut body = vec![1u8];
                 body.extend_from_slice(command.as_bytes());
-                super::forja::send_to_server(self, NET, &body);
+                super::foundry::send_to_server(self, NET, &body);
             } else {
                 kit_notice::chat(self, "Curios: this server does not run the Horizon port".into());
             }
@@ -3580,7 +3580,7 @@ impl Game<'_> {
             Ok(c) => c,
             Err(e) => return kit_notice::chat(self, e),
         };
-        if level < engine::date_jar::COMMAND_PERMISSION {
+        if level < engine::jar_data::COMMAND_PERMISSION {
             return kit_notice::chat(self, "You do not have permission to use this command".into());
         }
         let me = self.lan_acting_name.clone().unwrap_or_else(|| "@s".to_owned());
@@ -3755,10 +3755,10 @@ impl Game<'_> {
         curios_fill_view(&reg, &inv, &self.armor, &self.offhand, &mut m);
         m
     }
-    /// A guest asked for the Curios menu (`CPacketOpenCurios`): a forja menu over a mirror near them.
+    /// A guest asked for the Curios menu (`CPacketOpenCurios`): a foundry menu over a mirror near them.
     fn curios_open_guest(&mut self, host: &mut LanHost, conn: u32) {
         curios_register();
-        if !super::forja::guest_has_forja(conn) {
+        if !super::foundry::guest_has_foundry(conn) {
             return;
         }
         let Some(g) = host.hub.guest(conn) else { return };
@@ -3767,8 +3767,8 @@ impl Game<'_> {
         }
         let (feet, eye) = (g.position, g.eye_height());
         // ServerPlayer.openMenu closes what was open (our own mirror goes with it, in `closed`).
-        if super::forja::server_menu_of(conn).is_some() {
-            self.forja_menu_close(host, conn, false);
+        if super::foundry::server_menu_of(conn).is_some() {
+            self.foundry_menu_close(host, conn, false);
         }
         if let Some(old) = players(|m| m.get_mut(&conn).and_then(|r| r.menu.take())) {
             self.curios_drop_mirror(conn, old.pos);
@@ -3781,7 +3781,7 @@ impl Game<'_> {
         let state = self.world.block(pos[0], pos[1], pos[2]).0;
         MIRRORS.lock().unwrap_or_else(|e| e.into_inner()).insert((self.dim.id(), pos), Mirror { owner: conn, state });
         self.world.block_entities.insert((pos[0], pos[1], pos[2]), placeholder());
-        if !self.forja_menu_open(host, conn, MENU_KIND, pos) {
+        if !self.foundry_menu_open(host, conn, MENU_KIND, pos) {
             self.curios_drop_mirror(conn, pos);
         }
     }
@@ -3838,7 +3838,7 @@ impl Game<'_> {
             }
         }
     }
-    /// The in-frame host opens the Curios menu (no forja: the window is the server).
+    /// The in-frame host opens the Curios menu (no foundry: the window is the server).
     fn curios_open_local(&mut self) {
         let Some(feet) = self.player.as_ref().map(|p| [p.position.x, p.position.y, p.position.z]) else { return };
         let Some(pos) = self.curios_mirror_pos(feet, f64::from(self.eye)) else { return };
@@ -3899,7 +3899,7 @@ impl Game<'_> {
         }
     }
     /// HEAD `save_level` / `save_game_metadata`: no mirror is written with the world (put back on
-    /// the next tick, before forja checks the menus).
+    /// the next tick, before foundry checks the menus).
     pub(super) fn curios_before_save(&mut self) {
         if self.remote.is_some() {
             return;
@@ -4096,11 +4096,11 @@ impl Game<'_> {
             return None;
         }
         if self.remote.is_some() {
-            let (kind, pos) = super::forja::guest_menu(self)?;
+            let (kind, pos) = super::foundry::guest_menu(self)?;
             if kind != MENU_KIND {
                 return None;
             }
-            let (generation, sections) = super::forja::guest_sections(self)?;
+            let (generation, sections) = super::foundry::guest_sections(self)?;
             let view = CLIENT_VIEW.with(|c| {
                 let mut c = c.borrow_mut();
                 if c.as_ref().is_none_or(|(g, _)| *g != generation) {
@@ -4254,7 +4254,7 @@ impl Game<'_> {
                 self.curios_blit(batch, INVENTORY_REVAMP, s.x as f32 + i - 1.0, s.y as f32 + j - 1.0, 32.0, 50.0, 18.0, 18.0);
             }
             if mirror.get(n).is_none_or(|x| x.is_none()) {
-                let icon = view.icons.get(&s.id).cloned().unwrap_or_else(|| engine::date_jar::DEFAULT_ICON.to_owned());
+                let icon = view.icons.get(&s.id).cloned().unwrap_or_else(|| engine::jar_data::DEFAULT_ICON.to_owned());
                 if let Some(name) = self.curios_icon(&icon) {
                     batch.sprite(atlas, &name, i + s.x as f32, j + s.y as f32);
                 }
@@ -4358,8 +4358,8 @@ impl Game<'_> {
         if !engine::config::CLIENT_ENABLE_BUTTON {
             return None;
         }
-        // Only where the Curios menu can open: a Horizon server with forja, or the in-frame host.
-        if self.remote.is_some() && !super::forja::server_has_forja() {
+        // Only where the Curios menu can open: a Horizon server with foundry, or the in-frame host.
+        if self.remote.is_some() && !super::foundry::server_has_foundry() {
             return None;
         }
         let creative_tab = self.screen == Screen::Creative && self.creative_screen.tab().inventory;
@@ -4379,7 +4379,7 @@ impl Game<'_> {
         }
         let (mx, my) = self.cursor;
         if let Some((view, _)) = self.curios_screen() {
-            let Some(batch) = super::forja::hud_batch(self) else { return false };
+            let Some(batch) = super::foundry::hud_batch(self) else { return false };
             // The in-frame host: a Shift double click would run Horizon's own quick_move_all on
             // the mirror; it is the menu's (`mouseReleased`) here.
             if self.remote.is_none()
@@ -4428,13 +4428,13 @@ impl Game<'_> {
             };
             self.audio.play_button_click();
             if self.remote.is_some() {
-                super::forja::guest_send(self, super::forja::MenuInput::Button { id, arg });
+                super::foundry::guest_send(self, super::foundry::MenuInput::Button { id, arg });
             } else {
                 self.curios_button(id, arg);
             }
             return true;
         }
-        let Some(batch) = super::forja::hud_batch(self) else { return false };
+        let Some(batch) = super::foundry::hud_batch(self) else { return false };
         if let Some((x, y, size, _)) = self.curios_inventory_button(&batch)
             && mx >= x
             && mx < x + size
@@ -4450,8 +4450,8 @@ impl Game<'_> {
     /// Open the Curios menu: ask the server (a server's client), or open it here (in-frame host).
     fn curios_request_open(&mut self) {
         if self.remote.is_some() {
-            if super::forja::server_has_forja() {
-                super::forja::send_to_server(self, NET, &[0]);
+            if super::foundry::server_has_foundry() {
+                super::foundry::send_to_server(self, NET, &[0]);
             }
         } else if self.lan_acting.is_none() {
             self.curios_open_local();
@@ -4460,7 +4460,7 @@ impl Game<'_> {
     /// HEAD cancellable `tweaks::tweak_scroll`: the wheel over the panel turns the page.
     pub(super) fn curios_wheel(&mut self, delta: f32) -> bool {
         let Some((view, _)) = self.curios_screen() else { return false };
-        let Some(batch) = super::forja::hud_batch(self) else { return false };
+        let Some(batch) = super::foundry::hud_batch(self) else { return false };
         let (ox, oy) = self.inventory_origin(&batch);
         if !engine::wheel_turns_page(&view, self.cursor.0 - ox, self.cursor.1 - oy) {
             return false;
@@ -4468,9 +4468,9 @@ impl Game<'_> {
         let next = delta < 0.0;
         let can = if next { view.layout.page + 1 < view.layout.total_pages } else { view.layout.page > 0 };
         if can {
-            let input = super::forja::MenuInput::Button { id: engine::button::PAGE, arg: i64::from(next) };
+            let input = super::foundry::MenuInput::Button { id: engine::button::PAGE, arg: i64::from(next) };
             if self.remote.is_some() {
-                super::forja::guest_send(self, input);
+                super::foundry::guest_send(self, input);
             } else {
                 self.curios_button(engine::button::PAGE, i64::from(next));
             }

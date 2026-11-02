@@ -6,8 +6,8 @@ priority = 100
 [compatibility]
 horizon_revision = "142388e1c136e622652ec7505af15d8ad195e041"
 
-# The rules and the game side (native/horizon.rs + src/lib.rs). Uses forja (its guest menus): verify with
-# `tools/hnmod.py forja enchantinginfuser`.
+# The rules and the game side (native/horizon.rs + src/lib.rs). Uses foundry (its guest menus): build it
+# together with `mods/foundry`.
 [[module]]
 id = "runtime"
 file = "crates/horizon-client/src/game.rs"
@@ -48,7 +48,7 @@ bindings = [
   { name = "name", ty = "&str", value = "name" },
 ]
 
-# A guest opened an infuser (single player's window is one): the forja menu.
+# A guest opened an infuser (single player's window is one): the foundry menu.
 [[injection]]
 id = "lan-open"
 kind = "HEAD"

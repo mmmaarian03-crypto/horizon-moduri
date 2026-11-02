@@ -8,9 +8,9 @@
 // (the ironchest pattern); `enderstorage_tick` keeps every copy and the inventory equal
 // (`reconcile`). The Ender Pouch opens its frequency's inventory on a placeholder container under a
 // vehicle-style key, as a chest minecart does. The Ender Tank has no block entity: its tank is in
-// `Store`. Through forja (`crate::game::forja`, a native mod that must be enabled with this one) the
+// `Store`. Through foundry (`crate::game::foundry`, a native mod that must be enabled with this one) the
 // tank is the fluid handler of its block on every side (`TileEnderTank`'s FLUID_HANDLER), so Pipez
-// fluid pipes and forja machines fill and drain the frequency's tank.
+// fluid pipes and foundry machines fill and drain the frequency's tank.
 use super::{Game, Screen};
 use horizon_client::{containers::BlockEntity, enderstorage as lib, items::ItemStack};
 use horizon_core::position::BlockPos;
@@ -592,8 +592,8 @@ impl Game<'_> {
     // ---- the world file ----
 
     pub(super) fn enderstorage_load(&mut self) {
-        // The Ender Tank is a fluid handler for pipes and machines (forja, enabled with this mod).
-        crate::game::forja::register_fluid("enderstorage", es_tank_claims, es_tank_fluid);
+        // The Ender Tank is a fluid handler for pipes and machines (foundry, enabled with this mod).
+        crate::game::foundry::register_fluid("enderstorage", es_tank_claims, es_tank_fluid);
         let path = self.world_root.join("data/enderstorage/store.nbt");
         let loaded = std::fs::read(path)
             .ok()
@@ -668,19 +668,19 @@ impl Game<'_> {
 
 // ---- the Ender Tank as a fluid handler (TileEnderTank.getCapability(FLUID_HANDLER), any side) ----
 
-fn es_tank_claims(game: &Game<'_>, p: [i32; 3], _face: Option<crate::game::forja::Dir>) -> bool {
+fn es_tank_claims(game: &Game<'_>, p: [i32; 3], _face: Option<crate::game::foundry::Dir>) -> bool {
     game.world.chunks.contains_key(&(p[0] >> 4, p[2] >> 4)) && game.es_kind_at(p) == Some(lib::Kind::Tank)
 }
 
-/// The frequency's tank (`EnderLiquidStorage`, 16 buckets) as a forja `FluidTank` for one operation;
+/// The frequency's tank (`EnderLiquidStorage`, 16 buckets) as a foundry `FluidTank` for one operation;
 /// what the operation changed is written back to the frequency.
 fn es_tank_fluid(
     game: &mut Game<'_>,
     p: [i32; 3],
-    _face: Option<crate::game::forja::Dir>,
-    f: &mut dyn FnMut(&mut dyn crate::game::forja::FluidHandler),
+    _face: Option<crate::game::foundry::Dir>,
+    f: &mut dyn FnMut(&mut dyn crate::game::foundry::FluidHandler),
 ) -> bool {
-    use crate::game::forja::{FluidStack, FluidTank};
+    use crate::game::foundry::{FluidStack, FluidTank};
     if !es_tank_claims(game, p, None) {
         return false;
     }

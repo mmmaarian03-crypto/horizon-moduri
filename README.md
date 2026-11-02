@@ -1,4 +1,4 @@
-# Horizon native mods (horizon-moduri)
+# Horizon native mods
 
 Native mods for [Horizon](https://github.com/horizon-rust/horizon), Minecraft: Java Edition 26.3 rewritten in Rust.
 Most of them are unofficial ports of Forge 1.20.1 mods whose licence allows a port to be shared; a few are original.
@@ -13,62 +13,62 @@ mod. Not every feature has been played in game yet: each mod's README says what 
 
 ## The mods
 
-`mods/` holds 48 mods. `mods-nc/` holds 4 ports of
+`mods/` holds 47 mods. `mods-nc/` holds 4 ports of
 mods under **non-commercial** licences: they may be shared and changed, never sold or used to make money (see
 [LICENSE-NOTES.md](LICENSE-NOTES.md)).
 
 | Mod | Original | Licence | Needs |
 |---|---|---|---|
-| [`taburi_creative`](mods/taburi_creative) | original (no Java mod) | `MIT` |  |
+| [`creative_tabs`](mods/creative_tabs) | original (no Java mod) | `MIT` |  |
 | [`enderore`](mods/enderore) | the author's own 1.20.1 rebuild | `MIT` |  |
-| [`forja`](mods/forja) | original (no Java mod) | `MIT` |  |
-| [`ecran_incarcare`](mods/ecran_incarcare) | original (no Java mod) | `MIT` |  |
+| [`fast_start`](mods/fast_start) | original (no Java mod) | `MIT` |  |
+| [`foundry`](mods/foundry) | original (no Java mod) | `MIT` |  |
+| [`loading_screen`](mods/loading_screen) | original (no Java mod) | `MIT` |  |
 | [`netherending`](mods/netherending) | the author's own 1.20.1 rebuild | `MIT` |  |
-| [`pornire_rapida`](mods/pornire_rapida) | original (no Java mod) | `MIT` |  |
 | [`a_good_place`](mods/a_good_place) | [A Good Place 1.2.8](https://github.com/enjarai/a-good-place) by MehVahdJukaar, enjarai | `MIT` |  |
 | [`additionalbanners`](mods/additionalbanners) | [Additional Banners 14.0.5](https://github.com/Darkhax-Minecraft/AdditionalBanners) by Darkhax | `LGPL-2.1-only` |  |
 | [`advancednetherite`](mods/advancednetherite) | [Advanced Netherite 2.1.3](https://github.com/Autovw/AdvancedNetherite) by Autovw | `GPL-3.0-only` |  |
-| [`ae2`](mods/ae2) | [Applied Energistics 2 15.4.11](https://github.com/AppliedEnergistics/Applied-Energistics-2) by AlgorithmX2, TeamAppliedEnergistics | `LGPL-3.0-only` | forja |
+| [`ae2`](mods/ae2) | [Applied Energistics 2 15.4.11](https://github.com/AppliedEnergistics/Applied-Energistics-2) by AlgorithmX2, TeamAppliedEnergistics | `LGPL-3.0-only` | foundry |
 | [`attributefix`](mods/attributefix) | [AttributeFix 21.0.5](https://github.com/Darkhax-Minecraft/AttributeFix) by Darkhax | `LGPL-2.1-only` |  |
 | [`betteradvancements`](mods-nc/betteradvancements) | [Better Advancements 0.6.0.73](https://github.com/way2muchnoise/BetterAdvancements) by way2muchnoise | `LicenseRef-DBaJ-NC` |  |
 | [`capsule`](mods/capsule) | [Capsule 8.0.105](https://github.com/Lythom/capsule) by Lythom | `MIT` |  |
-| [`carryon`](mods/carryon) | [Carry On 2.1.2.7](https://github.com/Tschipp/CarryOn) by Tschipp, Purplicious_Cow, cy4n | `LGPL-3.0-only` | forja |
+| [`carryon`](mods/carryon) | [Carry On 2.1.2.7](https://github.com/Tschipp/CarryOn) by Tschipp, Purplicious_Cow, cy4n | `LGPL-3.0-only` | foundry |
 | [`cavedust`](mods/cavedust) | [Cave Dust 2.0.4](https://github.com/LizIsTired/cave_dust) by LizIsTired | `MPL-2.0` |  |
 | [`clumps`](mods/clumps) | [Clumps 12.0.0.4](https://github.com/jaredlll08/Clumps) by Jaredlll08 | `MIT` |  |
 | [`comforts`](mods/comforts) | [Comforts 6.4.0](https://github.com/illusivesoulworks/comforts) by Illusive Soulworks | `LGPL-3.0-or-later` |  |
-| [`curios`](mods/curios) | [Curios API 5.14.1](https://github.com/TheIllusiveC4/Curios) by C4, Illusive Soulworks | `LGPL-3.0-or-later` | forja |
+| [`curios`](mods/curios) | [Curios API 5.14.1](https://github.com/TheIllusiveC4/Curios) by C4, Illusive Soulworks | `LGPL-3.0-or-later` | foundry |
 | [`waterdripsound`](mods/waterdripsound) | [Drip Sounds 0.6.3](https://github.com/PieKing1215/DripSounds) by PieKing1215 | `LGPL-3.0-only` |  |
-| [`easyanvils`](mods/easyanvils) | [Easy Anvils 8.0.2](https://github.com/Fuzss/easyanvils) by Fuzs | `MPL-2.0` | forja |
-| [`enchantinginfuser`](mods/enchantinginfuser) | [Enchanting Infuser 8.0.3](https://github.com/Fuzss/enchantinginfuser) by Fuzs | `MPL-2.0` | forja |
+| [`easyanvils`](mods/easyanvils) | [Easy Anvils 8.0.2](https://github.com/Fuzss/easyanvils) by Fuzs | `MPL-2.0` | foundry |
+| [`enchantinginfuser`](mods/enchantinginfuser) | [Enchanting Infuser 8.0.3](https://github.com/Fuzss/enchantinginfuser) by Fuzs | `MPL-2.0` | foundry |
 | [`enchdesc`](mods/enchdesc) | [Enchantment Descriptions 17.1.21](https://github.com/Darkhax-Minecraft/Enchantment-Descriptions) by Darkhax | `LGPL-2.1-only` |  |
-| [`enderstorage`](mods/enderstorage) | [EnderStorage 2.11.0.188](https://github.com/TheCBProject/EnderStorage) by ChickenBones, covers1624 | `MIT` | forja |
+| [`enderstorage`](mods/enderstorage) | [EnderStorage 2.11.0.188](https://github.com/TheCBProject/EnderStorage) by ChickenBones, covers1624 | `MIT` | foundry |
 | [`escape_rope`](mods/escape_rope) | [Escape Rope 1.0.0](https://modrinth.com/mod/escape-rope) by rdani | `AFL-3.0` |  |
-| [`explorerscompass`](mods-nc/explorerscompass) | [Explorer's Compass 1.4.0](https://github.com/MattCzyr/ExplorersCompass) by ChaosTheDude (MattCzyr) | `CC-BY-NC-SA-4.0` | forja |
+| [`explorerscompass`](mods-nc/explorerscompass) | [Explorer's Compass 1.4.0](https://github.com/MattCzyr/ExplorersCompass) by ChaosTheDude (MattCzyr) | `CC-BY-NC-SA-4.0` | foundry |
 | [`fallingtree`](mods/fallingtree) | [FallingTree 4.3.4](https://github.com/RakambdaOrg/FallingTree) by Rakambda | `LGPL-3.0-only` |  |
 | [`hangglider`](mods/hangglider) | [Hang Glider 8.0.1](https://github.com/Fuzss/hangglider) by gr8pefish, Fuzs | `MIT` |  |
 | [`hats`](mods/hats) | [Hats Renewed 20.1.2](https://github.com/guivnf/Hats-renewed) by iChun, guivnf | `LGPL-3.0-only` |  |
-| [`ironchest`](mods/ironchest) | [Iron Chests 14.4.4](https://github.com/progwml6/ironchest) by cpw, alexbegt, progwml6 | `GPL-3.0-only` | forja |
+| [`ironchest`](mods/ironchest) | [Iron Chests 14.4.4](https://github.com/progwml6/ironchest) by cpw, alexbegt, progwml6 | `GPL-3.0-only` | foundry |
 | [`itemphysic`](mods/itemphysic) | [ItemPhysic 1.8.17](https://github.com/CreativeMD/ItemPhysic) by CreativeMD | `LGPL-3.0-only` |  |
 | [`leavesbegone`](mods/leavesbegone) | [Leaves Be Gone 8.0.0](https://github.com/Fuzss/leavesbegone) by Fuzs | `MPL-2.0` |  |
 | [`modonomicon`](mods/modonomicon) | [Modonomicon 1.79.3](https://github.com/klikli-dev/modonomicon) by klikli-dev | `MIT` |  |
 | [`morebows`](mods/morebows) | [More Bows Restrung 1.0.13](https://github.com/NeRdTheNed/More-bows) by GaussFire, iDiamondhunter, NeRd | `CC0-1.0` |  |
 | [`moreoverlays`](mods/moreoverlays) | [More Overlays Updated 1.22.7](https://github.com/r8420/MoreOverlays-updated) by feldim2425, RiDGo8/R8420 | `MIT` |  |
 | [`mousetweaks`](mods/mousetweaks) | [Mouse Tweaks 2.25.1](https://github.com/YaLTeR/MouseTweaks) by Ivan Molodetskikh (YaLTeR) | `BSD-3-Clause` |  |
-| [`naturescompass`](mods-nc/naturescompass) | [Nature's Compass 1.12.0](https://github.com/MattCzyr/NaturesCompass) by ChaosTheDude (MattCzyr) | `CC-BY-NC-SA-4.0` | forja |
+| [`naturescompass`](mods-nc/naturescompass) | [Nature's Compass 1.12.0](https://github.com/MattCzyr/NaturesCompass) by ChaosTheDude (MattCzyr) | `CC-BY-NC-SA-4.0` | foundry |
 | [`neat`](mods/neat) | [Neat 41](https://github.com/VazkiiMods/Neat) by Vazkii, Violet Moon | `MIT` |  |
 | [`oreberriesreplanted`](mods/oreberriesreplanted) | [Oreberries Replanted 0.5.2](https://github.com/Mrbysco/OreBerries-Replanted) by Mrbysco, ShyNieke | `MIT` |  |
 | [`overflowingbars`](mods/overflowingbars) | [Overflowing Bars 8.0.1](https://github.com/Fuzss/overflowingbars) by Fuzs | `MPL-2.0` |  |
 | [`patchouli`](mods-nc/patchouli) | [Patchouli 1.20.1-85](https://github.com/VazkiiMods/Patchouli) by Vazkii, Violet Moon | `CC-BY-NC-SA-3.0` |  |
-| [`polymorph`](mods/polymorph) | [Polymorph 0.49.10](https://github.com/illusivesoulworks/polymorph) by Illusive Soulworks | `LGPL-3.0-or-later` | forja |
+| [`polymorph`](mods/polymorph) | [Polymorph 0.49.10](https://github.com/illusivesoulworks/polymorph) by Illusive Soulworks | `LGPL-3.0-or-later` | foundry |
 | [`presencefootsteps`](mods/presencefootsteps) | [Presence Footsteps 1.0.0 (Forge port)](https://github.com/Sollace/Presence-Footsteps) by Hurricaaane (Ha3), Sollace, 1Influence | `MIT` |  |
-| [`simplyjetpacks`](mods/simplyjetpacks) | [Simply Jetpacks 2 2.11.0.1](https://github.com/Tomson124/SimplyJetpacks2) by Tomson124, StormedPanda | `MIT` | forja |
+| [`simplyjetpacks`](mods/simplyjetpacks) | [Simply Jetpacks 2 2.11.0.1](https://github.com/Tomson124/SimplyJetpacks2) by Tomson124, StormedPanda | `MIT` | foundry |
 | [`smoothswapping`](mods/smoothswapping) | [Smooth Swapping 0.9.3.2](https://github.com/Schauweg/Smooth-Swapping) by Schauweg, Riflusso | `LGPL-3.0-or-later` |  |
 | [`soulshards`](mods/soulshards) | [Soul Shards 1.3.6](https://github.com/CreeperHost/SoulShards) by TehNut, CreeperHost | `MIT` |  |
 | [`storagedrawers`](mods/storagedrawers) | [Storage Drawers 12.15.1](https://github.com/jaquadro/StorageDrawers) by jaquadro (Texelsaur) | `MIT` |  |
 | [`tlc`](mods/tlc) | [The Lost Castle 1.0.3](https://github.com/Team-Remastered/The-Lost-Castle-Forge) by Team Remastered | `LGPL-3.0-only` |  |
 | [`torchmaster`](mods/torchmaster) | [Torchmaster 20.1.9](https://github.com/Xalcon/TorchMaster) by Xalcon | `MIT` |  |
 | [`travelerstitles`](mods/travelerstitles) | [Traveler's Titles 4.0.2](https://github.com/YUNG-GANG/Travelers-Titles) by YUNGNICKYOUNG | `LGPL-3.0-only` |  |
-| [`visualworkbench`](mods/visualworkbench) | [Visual Workbench 8.0.1](https://github.com/Fuzss/visualworkbench) by Fuzs | `MPL-2.0` | forja |
+| [`visualworkbench`](mods/visualworkbench) | [Visual Workbench 8.0.1](https://github.com/Fuzss/visualworkbench) by Fuzs | `MPL-2.0` | foundry |
 | [`yungsbridges`](mods/yungsbridges) | [YUNG's Bridges 4.0.3](https://github.com/YUNG-GANG/YUNGs-Bridges) by YUNGNICKYOUNG | `LGPL-3.0-only` |  |
 
 ## Build and install
@@ -85,7 +85,7 @@ pin the same Horizon commit (Horizon's docs/native-mods.md).
 3. From a terminal instead: `horizon-launcher native-build <folder> --instance <name> --trust-native-code`, where the
    folder is a mod folder or a folder of them.
 
-A mod that needs `forja` must be built together with `mods/forja`.
+A mod that needs `foundry` must be built together with `mods/foundry`.
 
 Each mod folder is also a small Cargo crate with the mod's rules: `cargo test` in it runs their tests without the game.
 

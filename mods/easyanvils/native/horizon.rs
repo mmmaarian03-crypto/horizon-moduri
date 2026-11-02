@@ -13,7 +13,7 @@
 //   `easyanvils` in `game/lan_stations.rs` (mixins/easyanvils/lan_stations.rs) fills the guest's menu from
 //   the anvil when it opens, copies it back on every change and keeps the items in the anvil when it closes;
 // - one player at a time holds an anvil's slots (`engine::may_bind`); another one gets a plain anvil;
-// - the items on top are the client's: a server sends each guest the anvils of his level on forja's channel
+// - the items on top are the client's: a server sends each guest the anvils of his level on foundry's channel
 //   (`easyanvils:anvils`, the world file's text, again whenever they change) and the client draws them.
 use super::{Game, lan::LanHost};
 #[allow(dead_code)]
@@ -34,7 +34,7 @@ use std::{
 
 const CFG: engine::Config = engine::Config::MARIAN;
 /// Server -> client: (dimension, the anvils of that level as the world file's text).
-const ANVILS: super::forja::Channel<(String, String)> = super::forja::Channel::new("easyanvils:anvils");
+const ANVILS: super::foundry::Channel<(String, String)> = super::foundry::Channel::new("easyanvils:anvils");
 
 struct LevelState {
     root: PathBuf,
@@ -568,7 +568,7 @@ impl Game<'_> {
         .unwrap_or_default()
     }
 
-    /// HEAD on `tick_guests` (after the held anvils): each guest with forja in the level in place gets its
+    /// HEAD on `tick_guests` (after the held anvils): each guest with foundry in the level in place gets its
     /// anvils again when they changed (or when he is new here).
     pub(super) fn easyanvils_send_anvils(&mut self, host: &LanHost) {
         if self.remote.is_some() || self.world_root.as_os_str().is_empty() || !engine::RENDER_ANVIL_CONTENTS {
@@ -582,7 +582,7 @@ impl Game<'_> {
                 .hub
                 .guests
                 .iter()
-                .filter(|g| host.hub.here(g) && g.loaded && super::forja::guest_has_forja(g.conn))
+                .filter(|g| host.hub.here(g) && g.loaded && super::foundry::guest_has_foundry(g.conn))
                 .filter(|g| rt.sent.get(&g.conn) != Some(&(dim, generation)))
                 .map(|g| g.conn)
                 .collect();
@@ -598,7 +598,7 @@ impl Game<'_> {
         if let Some((want, text)) = out {
             let body = ANVILS.encode(&(dim.to_owned(), text));
             for conn in want {
-                super::forja::send_to_guest(host, conn, ANVILS.id, &body);
+                super::foundry::send_to_guest(host, conn, ANVILS.id, &body);
             }
         }
     }
@@ -609,12 +609,12 @@ impl Game<'_> {
         if self.remote.is_none() {
             return;
         }
-        let got = super::forja::client_take(ANVILS.id).into_iter().filter_map(|b| ANVILS.decode(&b)).last();
-        let forja = super::forja::server_has_forja();
+        let got = super::foundry::client_take(ANVILS.id).into_iter().filter_map(|b| ANVILS.decode(&b)).last();
+        let foundry = super::foundry::server_has_foundry();
         with_rt(|rt| {
             if let Some((dim, text)) = got {
                 rt.mirror = Some(Mirror { dim, store: engine::load(&text, decode) });
-            } else if !forja {
+            } else if !foundry {
                 rt.mirror = None;
             }
         });

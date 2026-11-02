@@ -9,4 +9,4 @@ description = "Applied Energistics 2 for Horizon (native mod)"
 [dependencies]
 
 [dev-dependencies]
-horizon-forja = { path = "../forja" }
+horizon-foundry = { path = "../foundry" }

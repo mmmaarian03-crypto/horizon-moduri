@@ -6,8 +6,8 @@
 //   a record whose block is gone spills its items (cells keep their contents) at the next tick;
 // - networks are rebuilt from the records when the topology changes (channels, controller
 //   state), their energy is the sum of the members' shares, spread back after every operation;
-// - energy enters through forja (Energy Acceptor, Controller, the machines' buffers), items move
-//   through forja's item handlers (vanilla containers, other mods' blocks);
+// - energy enters through foundry (Energy Acceptor, Controller, the machines' buffers), items move
+//   through foundry's item handlers (vanilla containers, other mods' blocks);
 // - screens: a temporary `BlockEntity::Chest` window whose slots mirror the network or the
 //   device (no real item ever lives in it: every click is handled here, hoppers cannot see it,
 //   it is removed when the screen closes or a save happens).
@@ -33,9 +33,9 @@ use std::rc::Rc;
 /// Used by kit_state for `<world>/data/<MOD_ID>/`.
 const MOD_ID: &str = "ae2";
 /// The cable bus while one of its parts emits redstone (template `minecraft:trapped_chest`, the only
-/// kind of state Horizon asks for a signal per position: mods/forja/API.md section 11, "Redstone").
+/// kind of state Horizon asks for a signal per position: mods/foundry/API.md section 11, "Redstone").
 const CABLE_BUS_SIGNAL: &str = "ae2:cable_bus_signal";
-/// The AE2 windows of guests (single player's window, LAN friends) as forja menus.
+/// The AE2 windows of guests (single player's window, LAN friends) as foundry menus.
 const AE2_MENU: &str = "ae2:window";
 
 /// The block at `p` by name; the cable bus's signal twin is the cable bus.
@@ -69,7 +69,7 @@ thread_local! {
 /// world; every write marks the world for the next save.
 fn with_st<R>(g: &Game<'_>, f: impl FnOnce(&mut engine::State) -> R) -> Option<R> {
     if g.remote.is_some() {
-        // A server's client: the device of the AE2 window it shows (a forja menu), as the server
+        // A server's client: the device of the AE2 window it shows (a foundry menu), as the server
         // sent it; what changes here is the copy's.
         return GUEST_ST.with(|s| s.try_borrow_mut().ok().map(|mut s| f(&mut s)));
     }
@@ -364,9 +364,9 @@ struct Rt {
     nets: Vec<Net>,
     net_of: HashMap<Loc, usize>,
     tickers: HashMap<Loc, engine::Ticker>,
-    /// forja's host generation the records were last matched with.
+    /// foundry's host generation the records were last matched with.
     bus_gen: u64,
-    /// The faces with parts at forja's host generation `blocked_gen`.
+    /// The faces with parts at foundry's host generation `blocked_gen`.
     blocked_gen: u64,
     blocked_cache: std::collections::BTreeSet<(Pos, Dir)>,
     window: Option<Window>,
@@ -466,11 +466,11 @@ impl<'a, 'g> Live<'a, 'g> {
     fn new(game: &'a mut Game<'g>, mounts: Vec<MountRef>) -> Self {
         Live { game, mounts, target: None, prov: Rc::new(HashMap::new()), cur_def: Key::new() }
     }
-    fn with_target<R>(&mut self, f: impl FnOnce(&mut dyn super::forja::ItemHandler<ItemStack>) -> R) -> Option<R> {
+    fn with_target<R>(&mut self, f: impl FnOnce(&mut dyn super::foundry::ItemHandler<ItemStack>) -> R) -> Option<R> {
         let (p, face) = self.target?;
         let mut out = None;
         let mut f = Some(f);
-        super::forja::with_items(self.game, p, Some(fdir(face)), &mut |h| {
+        super::foundry::with_items(self.game, p, Some(fdir(face)), &mut |h| {
             if let Some(f) = f.take() {
                 out = Some(f(h));
             }
@@ -478,23 +478,23 @@ impl<'a, 'g> Live<'a, 'g> {
         out
     }
 }
-/// engine::Dir -> forja::Dir (same order: Direction.get3DDataValue).
-fn fdir(d: Dir) -> super::forja::Dir {
-    super::forja::Dir::ALL[d.idx()]
+/// engine::Dir -> foundry::Dir (same order: Direction.get3DDataValue).
+fn fdir(d: Dir) -> super::foundry::Dir {
+    super::foundry::Dir::ALL[d.idx()]
 }
 fn bus_inv_op<R>(game: &mut Game<'_>, target: Pos, face: Dir, f: impl FnOnce(&mut HandlerInv<'_>) -> R) -> Option<R> {
     let mut out = None;
     let mut f = Some(f);
-    super::forja::with_items(game, target, Some(fdir(face)), &mut |h| {
+    super::foundry::with_items(game, target, Some(fdir(face)), &mut |h| {
         if let Some(f) = f.take() {
             out = Some(f(&mut HandlerInv { h }));
         }
     });
     out
 }
-/// A forja item handler as the engine's `Inv`.
+/// A foundry item handler as the engine's `Inv`.
 struct HandlerInv<'h> {
-    h: &'h mut dyn super::forja::ItemHandler<ItemStack>,
+    h: &'h mut dyn super::foundry::ItemHandler<ItemStack>,
 }
 impl engine::Inv for HandlerInv<'_> {
     fn slots(&mut self) -> usize {
@@ -626,7 +626,7 @@ impl Game<'_> {
         let l = at.into();
         let name = ae2_block_name(self, l.pos)?;
         if *name == *engine::CABLE_BUS {
-            return super::forja::part_at(self, l.pos, l.side.map(fdir));
+            return super::foundry::part_at(self, l.pos, l.side.map(fdir));
         }
         l.side.is_none().then(|| name.to_string())
     }
@@ -746,14 +746,14 @@ impl Game<'_> {
         }
     }
 
-    /// The cable buses' parts and cables get their records (forja tells when hosts change), and
+    /// The cable buses' parts and cables get their records (foundry tells when hosts change), and
     /// stage-1 whole cables and part blocks become cable buses.
     fn ae2_bus_sync(&mut self) {
-        let generation = super::forja::hosts_generation();
+        let generation = super::foundry::hosts_generation();
         if with_rt(|rt| rt.bus_gen == generation) == Some(true) {
             return;
         }
-        for (p, host) in super::forja::hosts_of(self, engine::CABLE_BUS) {
+        for (p, host) in super::foundry::hosts_of(self, engine::CABLE_BUS) {
             if !kit_blocks::loaded(self, p) {
                 continue;
             }
@@ -792,20 +792,20 @@ impl Game<'_> {
         }
     }
     fn ae2_migrate_one(&mut self, p: Pos, m: &engine::Migration) {
-        if self.pack.assets.registry.default_state(engine::CABLE_BUS).is_none() || super::forja::part_spec(&m.center).is_none() {
+        if self.pack.assets.registry.default_state(engine::CABLE_BUS).is_none() || super::foundry::part_spec(&m.center).is_none() {
             return; // no cable bus in this build: the stage-1 block keeps working as it was
         }
         let old = ae2_block_name(self, p).map(|n| n.to_string()).unwrap_or_default();
-        // The block goes first (no drops: set_block), then forja's host takes its place.
+        // The block goes first (no drops: set_block), then foundry's host takes its place.
         let air = self.world.air;
         let at = horizon_core::position::BlockPos::new(p[0], p[1], p[2]);
         self.with_level(|b, level, ticks| b.set_block(level, ticks, at, air, level_flags::UPDATE_CLIENTS));
         let _ = self.process_level_events();
-        let mut center = super::forja::Part::new(&m.center);
+        let mut center = super::foundry::Part::new(&m.center);
         if m.center_legacy {
-            center.set(super::forja::NO_DROP, 1);
+            center.set(super::foundry::NO_DROP, 1);
         }
-        if !super::forja::put_part(self, p, None, center) {
+        if !super::foundry::put_part(self, p, None, center) {
             // Nothing is lost: the block's item drops (its record spills at the next tick).
             log::warn!("ae2: the stage-1 block at {p:?} could not become a cable bus");
             if let Some(s) = stack_of(&key_of(&ItemStack::new(&old, 1)), 1) {
@@ -815,7 +815,7 @@ impl Game<'_> {
             return;
         }
         if let Some((side, id)) = &m.part {
-            if super::forja::put_part(self, p, Some(fdir(*side)), super::forja::Part::new(id)) {
+            if super::foundry::put_part(self, p, Some(fdir(*side)), super::foundry::Part::new(id)) {
                 with_st(self, |s| {
                     if let Some(d) = s.devices.remove(&Loc::block(p)) {
                         s.devices.insert(Loc::part(p, *side), d);
@@ -823,7 +823,7 @@ impl Game<'_> {
                 });
             } else {
                 // The stub alone is no use: it goes, the part's item drops.
-                super::forja::take_part(self, p, None);
+                super::foundry::take_part(self, p, None);
                 if let Some(s) = stack_of(&key_of(&ItemStack::new(id, 1)), 1) {
                     self.ae2_drop(p, s);
                 }
@@ -859,15 +859,15 @@ impl Game<'_> {
         }
         (out, self.ae2_blocked())
     }
-    /// The cable-bus faces holding a part (nodeless ones too), again only when forja's hosts
+    /// The cable-bus faces holding a part (nodeless ones too), again only when foundry's hosts
     /// changed.
     fn ae2_blocked(&self) -> std::collections::BTreeSet<(Pos, Dir)> {
-        let generation = super::forja::hosts_generation();
+        let generation = super::foundry::hosts_generation();
         if let Some(Some(b)) = with_rt(|rt| (rt.blocked_gen == generation).then(|| rt.blocked_cache.clone())) {
             return b;
         }
         let mut blocked = std::collections::BTreeSet::new();
-        for (p, host) in super::forja::hosts_of(self, engine::CABLE_BUS) {
+        for (p, host) in super::foundry::hosts_of(self, engine::CABLE_BUS) {
             for (slot, _) in host.parts() {
                 if let Some(d) = slot.and_then(|d| Dir::from_idx(d.idx())) {
                     blocked.insert((p, d));
@@ -1064,11 +1064,11 @@ impl Game<'_> {
     }
 }
 
-// ---- forja providers: energy in, items of the machines and interfaces ----
+// ---- foundry providers: energy in, items of the machines and interfaces ----
 
 /// The record a capability question reaches: in a cable bus the part on the asked face (AE2 parts
 /// give capabilities for their own side only), otherwise the block itself.
-fn ae2_provider_loc(game: &Game<'_>, p: Pos, face: Option<super::forja::Dir>) -> Option<Loc> {
+fn ae2_provider_loc(game: &Game<'_>, p: Pos, face: Option<super::foundry::Dir>) -> Option<Loc> {
     let name = ae2_block_name(game, p)?;
     if *name == *engine::CABLE_BUS {
         let side = Dir::from_idx(face?.idx())?;
@@ -1076,7 +1076,7 @@ fn ae2_provider_loc(game: &Game<'_>, p: Pos, face: Option<super::forja::Dir>) ->
     }
     Some(Loc::block(p))
 }
-fn ae2_energy_claims(game: &Game<'_>, p: Pos, face: Option<super::forja::Dir>) -> bool {
+fn ae2_energy_claims(game: &Game<'_>, p: Pos, face: Option<super::foundry::Dir>) -> bool {
     let Some(l) = ae2_provider_loc(game, p, face) else { return false };
     matches!(game.ae2_kind_at(l), Some(Kind::Acceptor(_) | Kind::Controller | Kind::Inscriber | Kind::Charger | Kind::Chest))
 }
@@ -1088,7 +1088,7 @@ struct FeIn {
     max_ae: f64,
     taken_ae: f64,
 }
-impl super::forja::EnergyHandler for FeIn {
+impl super::foundry::EnergyHandler for FeIn {
     fn receive_energy(&mut self, max: i32, simulate: bool) -> i32 {
         let fe = engine::fe_receive(self.demand_ae - self.taken_ae, max);
         if !simulate {
@@ -1115,8 +1115,8 @@ impl super::forja::EnergyHandler for FeIn {
 fn ae2_energy(
     game: &mut Game<'_>,
     pos: Pos,
-    face: Option<super::forja::Dir>,
-    f: &mut dyn FnMut(&mut dyn super::forja::EnergyHandler),
+    face: Option<super::foundry::Dir>,
+    f: &mut dyn FnMut(&mut dyn super::foundry::EnergyHandler),
 ) -> bool {
     let Some(p) = ae2_provider_loc(game, pos, face) else { return false };
     let Some(k) = game.ae2_ensure(p) else { return false };
@@ -1152,7 +1152,7 @@ fn ae2_energy(
     true
 }
 
-fn ae2_item_claims(game: &Game<'_>, p: Pos, face: Option<super::forja::Dir>) -> bool {
+fn ae2_item_claims(game: &Game<'_>, p: Pos, face: Option<super::foundry::Dir>) -> bool {
     // A block whose window is open: nothing reaches the window's temporary slots.
     if game.ae2_window_at((p[0], p[1], p[2]))
         && ae2_block_name(game, p).is_some_and(|n| kind_of(&n).is_some() || *n == *engine::CABLE_BUS)
@@ -1216,7 +1216,7 @@ impl DevItems<'_> {
         }
     }
 }
-impl super::forja::ItemHandler<ItemStack> for DevItems<'_> {
+impl super::foundry::ItemHandler<ItemStack> for DevItems<'_> {
     fn slots(&self) -> usize {
         self.visible().len()
     }
@@ -1279,8 +1279,8 @@ impl super::forja::ItemHandler<ItemStack> for DevItems<'_> {
 fn ae2_items(
     game: &mut Game<'_>,
     pos: Pos,
-    face: Option<super::forja::Dir>,
-    f: &mut dyn FnMut(&mut dyn super::forja::ItemHandler<ItemStack>),
+    face: Option<super::foundry::Dir>,
+    f: &mut dyn FnMut(&mut dyn super::foundry::ItemHandler<ItemStack>),
 ) -> bool {
     if with_rt(|rt| rt.window.as_ref().is_some_and(|w| w.pos.pos == pos)) == Some(true) {
         // A block whose window is open: an empty handler (the window's slots are mirrors).
@@ -1335,7 +1335,7 @@ fn ae2_items(
 
 /// No slots (an AE2 block whose window is open).
 struct EmptyItems;
-impl super::forja::ItemHandler<ItemStack> for EmptyItems {
+impl super::foundry::ItemHandler<ItemStack> for EmptyItems {
     fn slots(&self) -> usize {
         0
     }
@@ -1698,7 +1698,7 @@ impl Game<'_> {
                 _ => "ae2:controller",
             };
             for l in members {
-                // The cables' arms are the cable bus's (forja draws them from `ae2_join`).
+                // The cables' arms are the cable bus's (foundry draws them from `ae2_join`).
                 if nodes.get(&l) == Some(&NodeKind::Controller)
                     && ae2_block_name(self, l.pos).as_deref() != Some(look)
                     && let Some(st) = self.pack.assets.registry.default_state(look)
@@ -1712,7 +1712,7 @@ impl Game<'_> {
             let hosts: Vec<Pos> = nodes.keys().filter(|l| l.side.is_none()).map(|l| l.pos).collect();
             for p in hosts {
                 if ae2_block_name(self, p).as_deref() == Some(engine::CABLE_BUS) {
-                    super::forja::refresh_parts(self, p);
+                    super::foundry::refresh_parts(self, p);
                 }
             }
         }
@@ -1840,7 +1840,7 @@ impl Game<'_> {
         }
         // A cable bus: the part under the crosshair (CableBusContainer.activate -> selectPart).
         let at = if ae2_block_name(self, pos).as_deref() == Some(engine::CABLE_BUS) {
-            match super::forja::targeted_part(self) {
+            match super::foundry::targeted_part(self) {
                 Some((p, slot)) if p == pos => Loc { pos, side: slot.and_then(|d| Dir::from_idx(d.idx())) },
                 _ => return false,
             }
@@ -1962,24 +1962,24 @@ impl Game<'_> {
             *rt = Rt { last_search: search, ..Rt::default() };
         });
     }
-    /// The providers, the cable bus and its parts are registered once (forja keeps one entry per id).
+    /// The providers, the cable bus and its parts are registered once (foundry keeps one entry per id).
     pub(super) fn ae2_register() {
-        super::forja::register_energy("ae2", ae2_energy_claims, ae2_energy);
-        super::forja::register_items("ae2", ae2_item_claims, ae2_items);
+        super::foundry::register_energy("ae2", ae2_energy_claims, ae2_energy);
+        super::foundry::register_items("ae2", ae2_item_claims, ae2_items);
         ae2_register_parts();
         ae2_register_menu();
     }
 }
 
 // ---------------------------------------------------------------------------------------------
-// The cable bus: AE2's cables and parts as forja compound blocks.
+// The cable bus: AE2's cables and parts as foundry compound blocks.
 
 /// `ae2:cable_bus` (CableBusBlock): mining it breaks every part (`getDrops` = every part's item),
 /// a wrench (sneak + use) takes the targeted part into the inventory (`disassembleWithWrench`);
 /// cable bus sounds are glass (`glassProps`).
 fn ae2_register_parts() {
-    use super::forja::{HostSpec, PartShape, PartSpec};
-    super::forja::register_host(HostSpec {
+    use super::foundry::{HostSpec, PartShape, PartSpec};
+    super::foundry::register_host(HostSpec {
         block: engine::CABLE_BUS,
         break_whole: engine::config::BREAK_WHOLE_CABLE_BUS,
         wrench_tag: Some("c:tools/wrench"),
@@ -1995,7 +1995,7 @@ fn ae2_register_parts() {
             // The stage-1 cable block draws the cable: its six booleans are the arms.
             let spec = PartSpec::center(&id, engine::CABLE_BUS, &id, PartShape::Cable { min, max, collide, attach_arms: !dense })
                 .group(if dense { 2 } else { 1 });
-            super::forja::register_part(spec, Some(ae2_join));
+            super::foundry::register_part(spec, Some(ae2_join));
         }
     }
     for def in engine::PARTS {
@@ -2005,12 +2005,12 @@ fn ae2_register_parts() {
             .cable_length(def.cable_length)
             .group(def.groups)
             .facing_opposite();
-        super::forja::register_part(spec, None);
+        super::foundry::register_part(spec, None);
     }
 }
 /// Whether a cable bus's cable links towards `side` (GridNode exposure + `connects`): another
 /// cable bus's cable of a fitting colour, or an AE2 block of the network (drive, controller...).
-fn ae2_join(game: &Game<'_>, pos: Pos, part: &super::forja::Part, side: super::forja::Dir, neighbour: Option<&super::forja::Part>) -> bool {
+fn ae2_join(game: &Game<'_>, pos: Pos, part: &super::foundry::Part, side: super::foundry::Dir, neighbour: Option<&super::foundry::Part>) -> bool {
     let Some(d) = Dir::from_idx(side.idx()) else { return false };
     let Some(Kind::Cable(c, dense)) = kind_of(&part.id) else { return false };
     let me = NodeSpec { pos, kind: NodeKind::Cable { color: c, dense }, idle: 0.0 };
@@ -2100,7 +2100,7 @@ impl cr::Machines for Live<'_, '_> {
         self.game.ae2_provider_push(l, details, table)
     }
 }
-/// The inventories around a pattern provider (PatternProviderTarget through forja).
+/// The inventories around a pattern provider (PatternProviderTarget through foundry).
 struct ProvTargets<'a, 'g> {
     game: &'a mut Game<'g>,
     pos: Pos,
@@ -2583,7 +2583,7 @@ impl Game<'_> {
                     Some(Kind::Interface(_)) => other.is_some_and(|o| self.ae2_net(o).is_some() && self.ae2_net(o) == net),
                     _ => false,
                 };
-                !skip && super::forja::has_items(self, q, Some(fdir(d.opposite())))
+                !skip && super::foundry::has_items(self, q, Some(fdir(d.opposite())))
             })
             .collect()
     }
@@ -2848,10 +2848,10 @@ impl Game<'_> {
         }
         // AbstractLevelEmitterPart.isProvidingStrongPower / isProvidingWeakPower: 15 out of its face
         // while on, and updateState's notifyBlocksOfNeighbors (the host, the block it powers):
-        // forja's redstone, the host turning into its signal twin while it emits.
+        // foundry's redstone, the host turning into its signal twin while it emits.
         if let Some(side) = l.side {
-            let s = if on { super::forja::Signal::side(fdir(side), 15, 15) } else { super::forja::Signal::off() };
-            super::forja::set_part_redstone(self, l.pos, Some(fdir(side)), s);
+            let s = if on { super::foundry::Signal::side(fdir(side), 15, 15) } else { super::foundry::Signal::off() };
+            super::foundry::set_part_redstone(self, l.pos, Some(fdir(side)), s);
         }
     }
 
@@ -3179,19 +3179,19 @@ fn fmt1(t: &str, v: &str) -> String {
 
 impl Game<'_> {
     fn ae2_gui_height(&self) -> i32 {
-        super::forja::hud_batch(self).map_or(240, |b| b.height as i32)
+        super::foundry::hud_batch(self).map_or(240, |b| b.height as i32)
     }
     fn ae2_open(&mut self, pos: Loc, k: Kind) {
         if self.remote.is_some() {
             return;
         }
         // A guest's turn (their click reached the server): their own window, shown on their client
-        // as a forja menu. A client without forja cannot show it.
+        // as a foundry menu. A client without foundry cannot show it.
         let guest = self.lan_acting;
         if let Some(conn) = guest
-            && !super::forja::guest_has_forja(conn)
+            && !super::foundry::guest_has_foundry(conn)
         {
-            kit_notice::action_bar(self, "AE2: this window needs Horizon with forja on your side".to_owned());
+            kit_notice::action_bar(self, "AE2: this window needs Horizon with foundry on your side".to_owned());
             return;
         }
         ae2_register_menu();
@@ -3269,7 +3269,7 @@ impl Game<'_> {
         }
         self.ae2_window_refresh();
         if let Some(conn) = guest {
-            // Kept apart; after the turn `lan_open_container` opens it as a forja menu
+            // Kept apart; after the turn `lan_open_container` opens it as a foundry menu
             // (`ae2_menu_claims`). The host's own window is back in place.
             if let Some(w) = with_rt(|rt| rt.window.take()).flatten() {
                 GUESTS.with(|g| g.borrow_mut().insert(conn, w));
@@ -3736,7 +3736,7 @@ impl Game<'_> {
     }
     /// Writes what every window slot shows into the temporary block entity.
     fn ae2_window_fill(&mut self) {
-        // A guest's window: its slots are forja's mirror of the server's.
+        // A guest's window: its slots are foundry's mirror of the server's.
         if self.remote.is_some() {
             return;
         }
@@ -4213,7 +4213,7 @@ impl Game<'_> {
             if !self.ae2_guest_open() {
                 return false;
             }
-            let input = super::forja::mouse_input(self, button, Vec::new());
+            let input = super::foundry::mouse_input(self, button, Vec::new());
             return self.ae2_guest_input(input, |g| g.ae2_mouse_at(button));
         }
         self.ae2_mouse_at(button)
@@ -4228,7 +4228,7 @@ impl Game<'_> {
             MouseButton::Middle => (false, true),
             _ => return false,
         };
-        let Some(batch) = super::forja::hud_batch(self) else { return false };
+        let Some(batch) = super::foundry::hud_batch(self) else { return false };
         let (ox, oy) = self.inventory_origin(&batch);
         let (mx, my) = (self.cursor.0 - ox, self.cursor.1 - oy);
         let shift = self.has_shift_down();
@@ -4904,8 +4904,8 @@ impl Game<'_> {
             if !self.ae2_guest_open() {
                 return None;
             }
-            let Some(code) = super::forja::key_code(key) else { return self.ae2_key_at(key) };
-            let input = super::forja::MenuInput::Key { key: code, shift: self.has_shift_down() };
+            let Some(code) = super::foundry::key_code(key) else { return self.ae2_key_at(key) };
+            let input = super::foundry::MenuInput::Key { key: code, shift: self.has_shift_down() };
             let mut r = None;
             self.ae2_guest_input(input, |g| {
                 r = g.ae2_key_at(key);
@@ -4940,7 +4940,7 @@ impl Game<'_> {
             if !self.ae2_guest_open() {
                 return false;
             }
-            let input = super::forja::MenuInput::Text { text: text.map(str::to_owned), backspace };
+            let input = super::foundry::MenuInput::Text { text: text.map(str::to_owned), backspace };
             return self.ae2_guest_input(input, |g| g.ae2_text_at(text, backspace));
         }
         self.ae2_text_at(text, backspace)
@@ -4978,7 +4978,7 @@ impl Game<'_> {
             if !self.ae2_guest_open() {
                 return None;
             }
-            let input = super::forja::scroll_input(self, delta, slot);
+            let input = super::foundry::scroll_input(self, delta, slot);
             let mut r = None;
             self.ae2_guest_input(input, |g| {
                 r = g.ae2_scroll_at(delta, slot);
@@ -5052,7 +5052,7 @@ impl Game<'_> {
     }
     /// The cursor is over the encoding panel.
     fn ae2_over_encoding(&self) -> bool {
-        let Some(batch) = super::forja::hud_batch(self) else { return false };
+        let Some(batch) = super::foundry::hud_batch(self) else { return false };
         let (ox, oy) = self.inventory_origin(&batch);
         let h = self.ae2_size().map_or(0.0, |s| s.1);
         let (mx, my) = (self.cursor.0 - ox, self.cursor.1 - oy);
@@ -5390,17 +5390,17 @@ impl engine::Mounts for ChestCellMount<'_> {
 }
 
 // ---------------------------------------------------------------------------------------------
-// AE2 windows for guests (forja menus, forja's mod networking, mods/forja/API.md section 10). Single player's window
+// AE2 windows for guests (foundry menus, foundry's mod networking, mods/foundry/API.md section 10). Single player's window
 // is a guest of its integrated server, as LAN friends are: the server keeps each guest's `Window`
 // apart (`GUESTS`) and puts it in `Rt::window` for the guest's turns (`ae2_menu_enter` / `_leave`),
-// so every handler of this file runs unchanged as the guest; forja mirrors the window's temporary
+// so every handler of this file runs unchanged as the guest; foundry mirrors the window's temporary
 // slots, and the window itself, its device and the dialogs' numbers go as sections. The guest's
 // client draws from the mirror (`ae2_guest_sync`, `with_st` on a client) and sends its input back.
 
 /// What a guest's client knows besides the window and its device.
 #[derive(Default)]
 struct GuestView {
-    /// forja's generation of the sections applied (0: apply again).
+    /// foundry's generation of the sections applied (0: apply again).
     generation: u64,
     shown: bool,
     avail: Option<u64>,
@@ -5412,7 +5412,7 @@ fn ae2_register_menu() {
     if DONE.swap(true, std::sync::atomic::Ordering::Relaxed) {
         return;
     }
-    super::forja::register_menu(super::forja::MenuKind {
+    super::foundry::register_menu(super::foundry::MenuKind {
         claims: Some(ae2_menu_claims),
         enter: Some(ae2_menu_enter),
         leave: Some(ae2_menu_leave),
@@ -5421,7 +5421,7 @@ fn ae2_register_menu() {
         input: Some(ae2_menu_input),
         closed: Some(ae2_menu_closed),
         valid: Some(ae2_menu_valid),
-        ..super::forja::MenuKind::new(AE2_MENU)
+        ..super::foundry::MenuKind::new(AE2_MENU)
     });
 }
 /// After the guest's turn that opened it (`lan_open_container`): the window is theirs.
@@ -5468,15 +5468,15 @@ fn ae2_menu_sections(game: &mut Game<'_>, _conn: u32, _p: Pos) -> Vec<Vec<u8>> {
         ae2_encode_window(&w),
         ae2_encode_view(&w),
         st.save().into_bytes(),
-        super::forja::to_bytes(&(avail, cpu_line)),
+        super::foundry::to_bytes(&(avail, cpu_line)),
     ]
 }
-fn ae2_menu_input(game: &mut Game<'_>, _conn: u32, _p: Pos, input: &super::forja::MenuInput) -> bool {
-    use super::forja::MenuInput;
+fn ae2_menu_input(game: &mut Game<'_>, _conn: u32, _p: Pos, input: &super::foundry::MenuInput) -> bool {
+    use super::foundry::MenuInput;
     match input {
-        MenuInput::Mouse { button, .. } => game.ae2_mouse_at(super::forja::button_of(*button)),
+        MenuInput::Mouse { button, .. } => game.ae2_mouse_at(super::foundry::button_of(*button)),
         MenuInput::Scroll { delta, slot, .. } => game.ae2_scroll_at(*delta, usize::try_from(*slot).ok()).unwrap_or(false),
-        MenuInput::Key { key, .. } => super::forja::key_of(*key).and_then(|k| game.ae2_key_at(k)).unwrap_or(false),
+        MenuInput::Key { key, .. } => super::foundry::key_of(*key).and_then(|k| game.ae2_key_at(k)).unwrap_or(false),
         MenuInput::Text { text, backspace } => game.ae2_text_at(text.as_deref(), *backspace),
         _ => false,
     }
@@ -5492,13 +5492,13 @@ fn ae2_menu_valid(game: &Game<'_>, conn: u32, _p: Pos) -> bool {
     GUESTS.with(|g| g.borrow().get(&conn).map(|w| w.pos)).is_some_and(|l| game.ae2_kind_at(l).is_some())
 }
 
-/// A guest's client: the window, its device and the numbers of the forja menu it shows, put in
+/// A guest's client: the window, its device and the numbers of the foundry menu it shows, put in
 /// place whenever the server sent new ones; the window goes when the menu does.
 fn ae2_guest_sync(game: &Game<'_>) {
     if game.remote.is_none() {
         return;
     }
-    let ours = super::forja::guest_menu(game).is_some_and(|(k, _)| k == AE2_MENU);
+    let ours = super::foundry::guest_menu(game).is_some_and(|(k, _)| k == AE2_MENU);
     if !ours {
         let was = GUEST_VIEW.with(|v| {
             let mut v = v.borrow_mut();
@@ -5515,7 +5515,7 @@ fn ae2_guest_sync(game: &Game<'_>) {
         }
         return;
     }
-    let Some((generation, sections)) = super::forja::guest_sections(game) else { return };
+    let Some((generation, sections)) = super::foundry::guest_sections(game) else { return };
     if GUEST_VIEW.with(|v| v.borrow().generation) == generation {
         return;
     }
@@ -5534,7 +5534,7 @@ fn ae2_guest_sync(game: &Game<'_>) {
             }
         });
     }
-    let extra: Option<(Option<u64>, String)> = sections.get(3).and_then(|b| super::forja::from_bytes(b));
+    let extra: Option<(Option<u64>, String)> = sections.get(3).and_then(|b| super::foundry::from_bytes(b));
     GUEST_VIEW.with(|v| {
         let mut v = v.borrow_mut();
         v.generation = generation;
@@ -5549,14 +5549,14 @@ fn ae2_guest_sync(game: &Game<'_>) {
 impl Game<'_> {
     /// This window shows an AE2 window as a guest.
     fn ae2_guest_open(&self) -> bool {
-        super::forja::guest_menu(self).is_some_and(|(k, _)| k == AE2_MENU)
+        super::foundry::guest_menu(self).is_some_and(|(k, _)| k == AE2_MENU)
     }
     /// A guest's input: the handler runs here on the mirror only to see whether the window takes it
     /// (the mirror is put back right after: the server's answer is the window), then it goes to the
     /// server, which runs the same handler as this player.
-    fn ae2_guest_input(&mut self, input: super::forja::MenuInput, local: impl FnOnce(&mut Game<'_>) -> bool) -> bool {
+    fn ae2_guest_input(&mut self, input: super::foundry::MenuInput, local: impl FnOnce(&mut Game<'_>) -> bool) -> bool {
         self.ae2_window();
-        let took = super::forja::guest_widget(self, input, local);
+        let took = super::foundry::guest_widget(self, input, local);
         GUEST_VIEW.with(|v| v.borrow_mut().generation = 0);
         took
     }
@@ -5588,7 +5588,7 @@ impl Game<'_> {
     }
 }
 
-// ---- the window as bytes (forja's codec) ----
+// ---- the window as bytes (foundry's codec) ----
 
 const WIN_KINDS: [WinKind; 20] = [
     WinKind::Terminal,
@@ -5618,10 +5618,10 @@ fn win_code(k: WinKind) -> u8 {
 fn win_of(c: u8) -> Option<WinKind> {
     WIN_KINDS.get(usize::from(c)).copied()
 }
-fn put_loc(w: &mut super::forja::Writer, l: &Loc) {
+fn put_loc(w: &mut super::foundry::Writer, l: &Loc) {
     w.put(&l.pos).u8(l.side.map_or(255, |d| d.idx() as u8));
 }
-fn get_loc(r: &mut super::forja::Reader<'_>) -> Option<Loc> {
+fn get_loc(r: &mut super::foundry::Reader<'_>) -> Option<Loc> {
     let pos: Pos = r.get()?;
     let side = match r.u8()? {
         255 => None,
@@ -5657,7 +5657,7 @@ fn slot_from(t: u8, i: usize) -> Option<Slot> {
 fn map_list(m: &BTreeMap<Key, u64>) -> Vec<(Key, u64)> {
     m.iter().map(|(k, v)| (k.clone(), *v)).collect()
 }
-fn put_plan(w: &mut super::forja::Writer, p: &cr::Plan) {
+fn put_plan(w: &mut super::foundry::Writer, p: &cr::Plan) {
     w.put(&p.output)
         .uvar(p.bytes)
         .bool(p.simulation)
@@ -5668,7 +5668,7 @@ fn put_plan(w: &mut super::forja::Writer, p: &cr::Plan) {
         .put(&p.crafts)
         .bool(p.too_complex);
 }
-fn get_plan(r: &mut super::forja::Reader<'_>) -> Option<cr::Plan> {
+fn get_plan(r: &mut super::foundry::Reader<'_>) -> Option<cr::Plan> {
     let output = r.get()?;
     let bytes = r.uvar()?;
     let simulation = r.bool()?;
@@ -5691,7 +5691,7 @@ fn get_plan(r: &mut super::forja::Reader<'_>) -> Option<cr::Plan> {
     })
 }
 fn ae2_encode_window(win: &Window) -> Vec<u8> {
-    let mut w = super::forja::Writer::new();
+    let mut w = super::foundry::Writer::new();
     put_loc(&mut w, &win.pos);
     w.u8(win_code(win.kind)).uvar(win.rows as u64).uvar(win.scroll as u64);
     w.uvar(win.slots.len() as u64);
@@ -5721,10 +5721,10 @@ fn ae2_encode_window(win: &Window) -> Vec<u8> {
 }
 fn ae2_encode_view(win: &Window) -> Vec<u8> {
     let craftable: Vec<Key> = win.craftable.iter().cloned().collect();
-    super::forja::to_bytes(&(win.view.clone(), craftable))
+    super::foundry::to_bytes(&(win.view.clone(), craftable))
 }
 fn ae2_decode_window(head: &[u8], view: &[u8]) -> Option<Window> {
-    let mut r = super::forja::Reader::new(head);
+    let mut r = super::foundry::Reader::new(head);
     let pos = get_loc(&mut r)?;
     let kind = win_of(r.u8()?)?;
     let rows = usize::try_from(r.uvar()?).ok()?;
@@ -5768,7 +5768,7 @@ fn ae2_decode_window(head: &[u8], view: &[u8]) -> Option<Window> {
     if !r.done() {
         return None;
     }
-    let (view, craftable): (Vec<(Key, u64)>, Vec<Key>) = super::forja::from_bytes(view)?;
+    let (view, craftable): (Vec<(Key, u64)>, Vec<Key>) = super::foundry::from_bytes(view)?;
     Some(Window {
         pos,
         kind,

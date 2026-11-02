@@ -580,13 +580,13 @@ pub fn size_of_template(size: [i32; 3]) -> i32 {
 }
 
 
-/// The original's plain data, read from the 1.20.1 jar by tools/date_jar.py: constants, enum values, static
+/// The original's plain data, read from the 1.20.1 jar by tools/jar_data.py: constants, enum values, static
 /// tables, numbers given to builders, constant getters, chances, the numbers of each method, and pure static
-/// methods translated from bytecode (each checked against the JVM). Use `date_jar::NAME` and cite it; delete what
+/// methods translated from bytecode (each checked against the JVM). Use `jar_data::NAME` and cite it; delete what
 /// the port does not need.
 #[allow(dead_code, non_upper_case_globals, non_camel_case_types, non_snake_case, clippy::all)]
-pub mod date_jar {
-    // Data read from the 1.20.1 jar `Capsule-1.20.1-8.0.105.jar` by tools/date_jar.py (first pass, generated).
+pub mod jar_data {
+    // Data read from the 1.20.1 jar `Capsule-1.20.1-8.0.105.jar` by tools/jar_data.py (first pass, generated).
     // Each constant names the Java class and the field / method it comes from. Values that depend on a
     // branch, a parameter or the config are left out. Keep what the rules need, cite it, delete the rest.
 

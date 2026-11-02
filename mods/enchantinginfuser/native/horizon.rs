@@ -7,8 +7,8 @@
 // `InfuserScreen`): the game's chest menu engine over the one slot (like the dirt chest of Iron Chests,
 // one item at most), the list of enchantments, the enchant and repair buttons and the enchanting power
 // drawn over the mod's own screen texture. Single player's window is a guest of the integrated server:
-// it gets the menu as a forja menu (`enchantinginfuser:infuser`), the server runs the clicks as the guest,
-// the list comes over as a forja section (`engine::View`).
+// it gets the menu as a foundry menu (`enchantinginfuser:infuser`), the server runs the clicks as the guest,
+// the list comes over as a foundry section (`engine::View`).
 #[allow(unused_imports)]
 use super::{DragView, Game, Result, Screen, lan::LanHost};
 use horizon_client::{
@@ -263,7 +263,7 @@ impl Game<'_> {
     }
 
     /// HEAD cancellable `lan_actions::lan_open_container`: a guest opened an infuser (single player's
-    /// window is one). With forja on his client: the infuser's menu as a forja menu; else nothing (the
+    /// window is one). With foundry on his client: the infuser's menu as a foundry menu; else nothing (the
     /// protocol has no menu of this shape).
     pub(super) fn infuser_lan_open(&mut self, host: &mut LanHost, conn: u32, pos: (i32, i32, i32)) -> Option<bool> {
         let p = [pos.0, pos.1, pos.2];
@@ -271,8 +271,8 @@ impl Game<'_> {
         infuser_register_menu();
         self.infuser_ensure_slot(p);
         STATE.with(|s| s.borrow_mut().open.remove(&conn));
-        if super::forja::guest_has_forja(conn) {
-            return Some(self.forja_menu_open(host, conn, MENU_KIND, p));
+        if super::foundry::guest_has_foundry(conn) {
+            return Some(self.foundry_menu_open(host, conn, MENU_KIND, p));
         }
         host.hub.send_to(
             conn,
@@ -284,10 +284,10 @@ impl Game<'_> {
         Some(false)
     }
 
-    /// The infuser whose menu is open here: on a server's client (single player's window) the forja menu.
+    /// The infuser whose menu is open here: on a server's client (single player's window) the foundry menu.
     fn infuser_open_menu(&self) -> Option<[i32; 3]> {
         if self.remote.is_some() {
-            let (kind, p) = super::forja::guest_menu(self)?;
+            let (kind, p) = super::foundry::guest_menu(self)?;
             return (kind == MENU_KIND).then_some(p);
         }
         if self.station.is_some() || self.screen != Screen::Inventory {
@@ -494,7 +494,7 @@ impl Game<'_> {
     /// guest). `scroll` = the window's first list row.
     fn infuser_press(&mut self, scroll: usize, shift: bool) -> bool {
         let Some((cfg, p)) = self.infuser_open_config() else { return false };
-        let Some(batch) = super::forja::hud_batch(self) else { return false };
+        let Some(batch) = super::foundry::hud_batch(self) else { return false };
         let (ox, oy) = batch.centered_origin(engine::screen::WIDTH, engine::screen::HEIGHT);
         let (mx, my) = (self.cursor.0 - ox, self.cursor.1 - oy);
         let key = self.infuser_key();
@@ -630,7 +630,7 @@ impl Game<'_> {
         if button != winit::event::MouseButton::Left {
             return false;
         }
-        let Some(batch) = super::forja::hud_batch(self) else { return false };
+        let Some(batch) = super::foundry::hud_batch(self) else { return false };
         let (ox, oy) = batch.centered_origin(engine::screen::WIDTH, engine::screen::HEIGHT);
         let (mx, my) = (self.cursor.0 - ox, self.cursor.1 - oy);
         let Some(view) = self.infuser_window_view() else { return false };
@@ -662,8 +662,8 @@ impl Game<'_> {
                         engine::Widget::Repair => view.can_repair(levels, creative),
                         engine::Widget::Scrollbar => false,
                     };
-                    let input = super::forja::mouse_input(self, button, vec![scroll.min(255) as u8]);
-                    super::forja::guest_send(self, input);
+                    let input = super::foundry::mouse_input(self, button, vec![scroll.min(255) as u8]);
+                    super::foundry::guest_send(self, input);
                     if active {
                         self.audio.play_button_click();
                     }
@@ -684,7 +684,7 @@ impl Game<'_> {
             STATE.with(|s| s.borrow_mut().dragging = false);
             return;
         }
-        let Some(batch) = super::forja::hud_batch(self) else { return };
+        let Some(batch) = super::foundry::hud_batch(self) else { return };
         let (_, oy) = batch.centered_origin(engine::screen::WIDTH, engine::screen::HEIGHT);
         let my = self.cursor.1 - oy;
         STATE.with(|s| s.borrow_mut().scroll = engine::bar_position(my));
@@ -715,7 +715,7 @@ impl Game<'_> {
     fn infuser_window_view(&self) -> Option<engine::View> {
         let p = self.infuser_open_menu()?;
         if self.remote.is_some() {
-            let (_, sections) = super::forja::guest_sections(self)?;
+            let (_, sections) = super::foundry::guest_sections(self)?;
             return engine::View::decode(sections.first()?);
         }
         self.infuser_view(HOST, p)
@@ -999,7 +999,7 @@ impl Game<'_> {
 
     fn infuser_window_item(&self, p: [i32; 3]) -> Option<ItemStack> {
         if self.remote.is_some() {
-            // forja's mirror: the block entity's slots at the infuser.
+            // foundry's mirror: the block entity's slots at the infuser.
             return self.infuser_slot_item(p);
         }
         self.infuser_slot_item(p)
@@ -1206,7 +1206,7 @@ fn readable(batch: &mut HudBatch, atlas: &horizon_client::hud::HudAtlas, x: f32,
     batch.text(atlas, text, x, y, color, false);
 }
 
-// ---- the forja menu (single player's window, LAN friends) ----
+// ---- the foundry menu (single player's window, LAN friends) ----
 
 fn infuser_menu_claims(game: &mut Game<'_>, _conn: u32, p: [i32; 3]) -> bool {
     if game.infuser_at(p).is_none() {
@@ -1224,8 +1224,8 @@ fn infuser_menu_sections(game: &mut Game<'_>, conn: u32, p: [i32; 3]) -> Vec<Vec
 }
 /// A press of the guest, replayed as him (his cursor, window size and Shift); `extra[0]` = his list's
 /// first row.
-fn infuser_menu_input(game: &mut Game<'_>, _conn: u32, _p: [i32; 3], input: &super::forja::MenuInput) -> bool {
-    let super::forja::MenuInput::Mouse { extra, shift, .. } = input else { return false };
+fn infuser_menu_input(game: &mut Game<'_>, _conn: u32, _p: [i32; 3], input: &super::foundry::MenuInput) -> bool {
+    let super::foundry::MenuInput::Mouse { extra, shift, .. } = input else { return false };
     let scroll = usize::from(extra.first().copied().unwrap_or(0));
     game.infuser_press(scroll, *shift)
 }
@@ -1237,12 +1237,12 @@ fn infuser_register_menu() {
     if DONE.swap(true, std::sync::atomic::Ordering::Relaxed) {
         return;
     }
-    super::forja::register_menu(super::forja::MenuKind {
+    super::foundry::register_menu(super::foundry::MenuKind {
         claims: Some(infuser_menu_claims),
         valid: Some(infuser_menu_valid),
         sections: Some(infuser_menu_sections),
         input: Some(infuser_menu_input),
         closed: Some(infuser_menu_closed),
-        ..super::forja::MenuKind::new(MENU_KIND)
+        ..super::foundry::MenuKind::new(MENU_KIND)
     });
 }

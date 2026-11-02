@@ -101,7 +101,7 @@ fn view(stack: &Option<ItemStack>) -> Option<engine::ShardView> {
     Some(engine::ShardView { is_shard: &*s.item == SHARD, binding: if &*s.item == SHARD { binding_of(s) } else { None } })
 }
 
-/// The cage's stack as the game's item NBT, in hex (forja's codec): every component kept.
+/// The cage's stack as the game's item NBT, in hex (foundry's codec): every component kept.
 fn encode_stack(s: &ItemStack) -> String {
     use horizon_world::nbt::{Limits, NamedTag, write_named};
     let root = NamedTag { name: JavaString::from(""), tag: horizon_client::save::item_to_nbt(s) };

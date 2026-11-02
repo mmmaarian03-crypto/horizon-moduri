@@ -10,7 +10,7 @@ use super::{Game, Result};
 #[allow(dead_code)]
 mod engine {
     // Hats Renewed (hats) for Horizon: the rules, without any game code.
-// Written from the pack's 1.20.1 jar `HatsRenewed-20.1.2-mc1.20.1-forge.jar` (decompiled in surse/hats/dec; LGPL):
+// Written from the pack's 1.20.1 jar `HatsRenewed-20.1.2-mc1.20.1-forge.jar` (decompiled in sources/hats/dec; LGPL):
 // HatRegistry, HatDefinition, HatPart, HatPool, HatRarity, HatsSavedData, PlayerHatData, ServerEventHandler,
 // HatEntity, HatLauncherItem, HatPlacementRegistry, LayerHat, HatToast, HatsScreen; and `config/hats.toml`.
 // Pasted into the game as `crate::game::hats::engine` (tools/hnmod.py bundle); also the `horizon_hats` crate of the tests.

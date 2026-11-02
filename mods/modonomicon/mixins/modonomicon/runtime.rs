@@ -4,7 +4,7 @@
 use super::{Game, Result};
 #[allow(dead_code)]
 mod engine {
-    // Modonomicon for Horizon: the rules, without any game code (tools/nou_mod.py skeleton).
+    // Modonomicon for Horizon: the rules, without any game code (tools/new_mod.py skeleton).
 // Written from the original mod's behaviour and the pack's config; cite the source of every value.
 // This file is pasted into the game as `crate::game::modonomicon::engine` (tools/hnmod.py bundle) and is also the
 // `horizon_modonomicon` crate the tests use: plain Rust, no game types, no inner attributes (`#![...]`).
@@ -184,7 +184,7 @@ mod kit_notice {
     }
     /// `player.displayClientMessage(text, false)`. For a guest this is a chat line; the host
     /// gets the same action-bar line (this pin has no plain host-side chat append without
-    /// going through `chat.rs` internals; see TRADUCATOR.md).
+    /// going through `chat.rs` internals; see TRANSLATOR.md).
     pub(super) fn chat(g: &mut Game<'_>, text: String) {
         send(g, text, false);
     }

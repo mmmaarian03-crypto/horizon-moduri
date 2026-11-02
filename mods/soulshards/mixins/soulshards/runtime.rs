@@ -426,13 +426,13 @@ pub fn uuid_text(u: [i32; 4]) -> String {
     )
 }
 
-/// The original's plain data, read from the 1.20.1 jar by tools/date_jar.py: constants, enum values, static
+/// The original's plain data, read from the 1.20.1 jar by tools/jar_data.py: constants, enum values, static
 /// tables, numbers given to builders, constant getters, chances, the numbers of each method, and pure static
-/// methods translated from bytecode (each checked against the JVM). Use `date_jar::NAME` and cite it; delete what
+/// methods translated from bytecode (each checked against the JVM). Use `jar_data::NAME` and cite it; delete what
 /// the port does not need.
 #[allow(dead_code, non_upper_case_globals, non_camel_case_types, non_snake_case, clippy::all)]
-pub mod date_jar {
-    // Data read from the 1.20.1 jar `soulshards-1.20-1.3.6.jar` by tools/date_jar.py (first pass, generated).
+pub mod jar_data {
+    // Data read from the 1.20.1 jar `soulshards-1.20-1.3.6.jar` by tools/jar_data.py (first pass, generated).
     // Each constant names the Java class and the field / method it comes from. Values that depend on a
     // branch, a parameter or the config are left out. Keep what the rules need, cite it, delete the rest.
 
@@ -833,7 +833,7 @@ fn view(stack: &Option<ItemStack>) -> Option<engine::ShardView> {
     Some(engine::ShardView { is_shard: &*s.item == SHARD, binding: if &*s.item == SHARD { binding_of(s) } else { None } })
 }
 
-/// The cage's stack as the game's item NBT, in hex (forja's codec): every component kept.
+/// The cage's stack as the game's item NBT, in hex (foundry's codec): every component kept.
 fn encode_stack(s: &ItemStack) -> String {
     use horizon_world::nbt::{Limits, NamedTag, write_named};
     let root = NamedTag { name: JavaString::from(""), tag: horizon_client::save::item_to_nbt(s) };

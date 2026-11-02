@@ -387,7 +387,7 @@ mod kit_notice {
     }
     /// `player.displayClientMessage(text, false)`. For a guest this is a chat line; the host
     /// gets the same action-bar line (this pin has no plain host-side chat append without
-    /// going through `chat.rs` internals; see TRADUCATOR.md).
+    /// going through `chat.rs` internals; see TRANSLATOR.md).
     pub(super) fn chat(g: &mut Game<'_>, text: String) {
         send(g, text, false);
     }

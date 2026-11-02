@@ -1,5 +1,5 @@
 # EnderStorage (covers1624 / ChickenBones, 1.20.1-2.11.0.188, MIT) for Horizon: native mod, private use.
-# Needs the native mod `forja` in the same build (the Ender Tank is a forja fluid handler).
+# Needs the native mod `foundry` in the same build (the Ender Tank is a foundry fluid handler).
 [mod]
 id = "enderstorage"
 version = "0.1.0"

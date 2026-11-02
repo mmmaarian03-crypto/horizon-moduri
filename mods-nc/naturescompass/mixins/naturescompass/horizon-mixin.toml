@@ -45,7 +45,7 @@ bindings = [
 ]
 
 # Every Game's tick, the window's too: the list goes with its screen; a server's client opens the list its server asks for
-# (forja channel naturescompass:open).
+# (foundry channel naturescompass:open).
 [[injection]]
 id = "client-tick"
 kind = "HEAD"

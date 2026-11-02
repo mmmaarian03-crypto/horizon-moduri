@@ -12,7 +12,7 @@
 // - the use (`NaturesCompassItem.use`), the search (`BiomeSearchWorker`), the compass' data and the teleport run where the
 //   world is: the in-frame host's game, or a server, for a guest inside its turn (`as_guest`); each player has his own search;
 // - the server tells the guest's client to open the list (`SyncPacket` + `GuiWrapper.openGUI`) with what only it knows
-//   (the compass FOUND, teleport allowed, creative, levels) over forja's channel `naturescompass:open`;
+//   (the compass FOUND, teleport allowed, creative, levels) over foundry's channel `naturescompass:open`;
 // - the list is the client's; its buttons go back to the server on `naturescompass:ask` (`CompassSearchPacket`,
 //   `SearchForNextPacket`, `TeleportPacket`), which runs them in the guest's turn.
 // The HUD reads the compass' data, which the server's inventory sync brings to the client.
@@ -81,9 +81,9 @@ fn with<R>(f: impl FnOnce(&mut St) -> R) -> R {
 /// Server -> client: open the list (`SyncPacket` + `openGUI`): the biome of a FOUND compass, (teleport allowed, creative),
 /// the player's levels.
 type Open = (Option<String>, (bool, bool), i64);
-const OPEN: super::forja::Channel<Open> = super::forja::Channel::new("naturescompass:open");
+const OPEN: super::foundry::Channel<Open> = super::foundry::Channel::new("naturescompass:open");
 /// Client -> server: a button of the list: (ASK_SEARCH, biome), (ASK_NEXT, ""), (ASK_TELEPORT, "").
-const ASK: super::forja::Channel<(u8, String)> = super::forja::Channel::new("naturescompass:ask");
+const ASK: super::foundry::Channel<(u8, String)> = super::foundry::Channel::new("naturescompass:ask");
 const ASK_SEARCH: u8 = 0;
 const ASK_NEXT: u8 = 1;
 const ASK_TELEPORT: u8 = 2;
@@ -93,7 +93,7 @@ fn nc_register() {
     if DONE.swap(true, std::sync::atomic::Ordering::Relaxed) {
         return;
     }
-    super::forja::register_server_channel(ASK.id, nc_ask_from_client);
+    super::foundry::register_server_channel(ASK.id, nc_ask_from_client);
 }
 /// A guest's client pressed a button of the list: it runs as the guest (`as_guest`), as the original's packets run for
 /// the `ServerPlayer` who sent them.
@@ -305,10 +305,10 @@ impl Game<'_> {
         let (creative, levels) = (self.creative, i64::from(self.experience.level));
         match who {
             None => self.nc_show(found, can_teleport, creative, levels),
-            // A client without forja (vanilla) has no list to show.
+            // A client without foundry (vanilla) has no list to show.
             Some(conn) => {
-                if super::forja::guest_has_forja(conn) {
-                    super::forja::send_to_acting(self, OPEN.id, &OPEN.encode(&(found, (can_teleport, creative), levels)));
+                if super::foundry::guest_has_foundry(conn) {
+                    super::foundry::send_to_acting(self, OPEN.id, &OPEN.encode(&(found, (can_teleport, creative), levels)));
                 }
             }
         }
@@ -336,7 +336,7 @@ impl Game<'_> {
     /// The list's button pressed in this window: run here (in-frame host) or sent to the server.
     fn nc_ask(&mut self, what: u8, biome: String) {
         if self.remote.is_some() {
-            super::forja::send_to_server(self, ASK.id, &ASK.encode(&(what, biome)));
+            super::foundry::send_to_server(self, ASK.id, &ASK.encode(&(what, biome)));
         } else {
             self.nc_do(what, &biome);
         }
@@ -454,7 +454,7 @@ impl Game<'_> {
         if self.remote.is_none() {
             return;
         }
-        for body in super::forja::client_take(OPEN.id) {
+        for body in super::foundry::client_take(OPEN.id) {
             let Some((found, (can_teleport, creative), levels)) = OPEN.decode(&body) else { continue };
             if self.screen == Screen::Playing {
                 self.nc_show(found, can_teleport, creative, levels);

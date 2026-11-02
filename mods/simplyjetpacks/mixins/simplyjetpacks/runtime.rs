@@ -7,10 +7,10 @@
 // - the server runs `flyUser` for every guest in its tick (`tick_guests`) with the guest's own input flags
 //   (`ServerboundPlayerInputPacket`): the energy, no fall distance while the jetpack pushes, the emergency hover, the
 //   potato's launch and explosion. A host in the frame does both in `sync_player_body`.
-// - the keys (`KeybindForgeBusHandler`) are read on the window (`native_key`) and go to the server on forja's
+// - the keys (`KeybindForgeBusHandler`) are read on the window (`native_key`) and go to the server on foundry's
 //   channel `simplyjetpacks:key` (the original's toggle packets); the server changes the worn jetpack and answers on
 //   the action bar.
-// - the HUD (`HUDHandler`) is drawn on the window from its copy of the jetpack (forja syncs `custom_data`).
+// - the HUD (`HUDHandler`) is drawn on the window from its copy of the jetpack (foundry syncs `custom_data`).
 #[allow(unused_imports)]
 use super::{Game, Result, Screen, lan::LanHost};
 #[allow(dead_code)]
@@ -205,8 +205,8 @@ pub const PARTICLES: [Particle; 8] = [
 ];
 
 /// The jetpack's NBT (`Engine`, `Hover`, `EmergencyHover`, `Charger`, `Energy`, `Throttle`, `ParticleID`, the potato's
-/// `Fired`, `RocketTimerSet`, `RocketTimer`). Here they live in `minecraft:custom_data`, energy as `forja:energy`
-/// (mods/forja/API.md section 6).
+/// `Fired`, `RocketTimerSet`, `RocketTimer`). Here they live in `minecraft:custom_data`, energy as `foundry:energy`
+/// (mods/foundry/API.md section 6).
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct Pack {
     pub engine: bool,
@@ -626,7 +626,7 @@ mod kit_notice {
     }
     /// `player.displayClientMessage(text, false)`. For a guest this is a chat line; the host
     /// gets the same action-bar line (this pin has no plain host-side chat append without
-    /// going through `chat.rs` internals; see TRADUCATOR.md).
+    /// going through `chat.rs` internals; see TRANSLATOR.md).
     pub(super) fn chat(g: &mut Game<'_>, text: String) {
         send(g, text, false);
     }
@@ -637,7 +637,7 @@ pub(super) const TITLE: &str = "Simply Jetpacks 2";
 pub(super) const DESCRIPTION: &str = "Jetpacks with energy, hover and emergency hover (port of Simply Jetpacks 2 1.20.1).";
 
 /// `PacketToggleEngine` ... `PacketUpdateThrottle`: the action's code.
-const KEY: super::forja::Channel<u32> = super::forja::Channel::new("simplyjetpacks:key");
+const KEY: super::foundry::Channel<u32> = super::foundry::Channel::new("simplyjetpacks:key");
 
 thread_local! {
     /// The guests whose jetpack pushed in this server tick (no fall damage for them).
@@ -649,7 +649,7 @@ fn register() {
     if DONE.swap(true, std::sync::atomic::Ordering::Relaxed) {
         return;
     }
-    super::forja::register_server_channel(KEY.id, key_from_client);
+    super::foundry::register_server_channel(KEY.id, key_from_client);
 }
 
 /// A guest's client pressed a jetpack key: the server acts on the guest's worn jetpack, in its turn.
@@ -660,7 +660,7 @@ fn key_from_client(game: &mut Game<'_>, host: &mut LanHost, conn: u32, body: &[u
     game.as_guest(host, conn, |g| g.simplyjetpacks_act(action));
 }
 
-// ---- the jetpack's NBT in custom_data (energy = forja:energy, mods/forja/API.md section 6)
+// ---- the jetpack's NBT in custom_data (energy = foundry:energy, mods/foundry/API.md section 6)
 
 fn custom(s: &ItemStack) -> Option<&Tag> {
     s.data().and_then(|d| d.other("minecraft:custom_data"))
@@ -681,7 +681,7 @@ fn read_pack(s: &ItemStack) -> engine::Pack {
         hover: flag("Hover"),
         ehover: flag("EmergencyHover"),
         charger: flag("Charger"),
-        energy: get_num(s, "forja:energy").unwrap_or(0).max(0),
+        energy: get_num(s, "foundry:energy").unwrap_or(0).max(0),
         throttle: get_num(s, "Throttle").map(|v| v as i32),
         particle: get_num(s, "ParticleID").map(|v| v as i32),
         fired: flag("Fired"),
@@ -708,7 +708,7 @@ fn write_pack(s: &mut ItemStack, before: &engine::Pack, p: &engine::Pack) {
     put("Hover", byte(p.hover));
     put("EmergencyHover", byte(p.ehover));
     put("Charger", byte(p.charger));
-    put("forja:energy", Some(Tag::Int(p.energy.clamp(0, i64::from(i32::MAX)) as i32)));
+    put("foundry:energy", Some(Tag::Int(p.energy.clamp(0, i64::from(i32::MAX)) as i32)));
     put("Throttle", p.throttle.map(Tag::Int));
     put("ParticleID", p.particle.map(Tag::Int));
     if p.fired || p.timer_set || before.timer_set {
@@ -1044,7 +1044,7 @@ impl Game<'_> {
                 continue;
             }
             if self.remote.is_some() {
-                let _ = super::forja::send_to_server(self, KEY.id, &KEY.encode(&u32::from(action.code())));
+                let _ = super::foundry::send_to_server(self, KEY.id, &KEY.encode(&u32::from(action.code())));
             } else {
                 self.simplyjetpacks_act(action);
             }

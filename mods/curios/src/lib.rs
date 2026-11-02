@@ -1,5 +1,5 @@
 // Curios for Horizon: the rules, without any game code.
-// Ported from Curios API 5.14.1+1.20.1 (LGPL-3.0-or-later, sources in surse\curios, branch 1.20.x,
+// Ported from Curios API 5.14.1+1.20.1 (LGPL-3.0-or-later, sources in sources/curios, branch 1.20.x,
 // commit a91da6b "5.14.1"): slot types (CuriosSlotManager, LegacySlotManager, SlotType.Builder,
 // CuriosEntityManager), the inventory (CurioInventoryCapability, CurioStacksHandler,
 // DynamicStackHandler), the menu (CuriosContainerV2 + AbstractContainerMenu.doClick), the drops
@@ -39,9 +39,9 @@ pub mod config {
     pub const MAX_SLOTS_PER_PAGE: i32 = 48;
 }
 
-/// Plain data of the 1.20.1 jar (tools/date_jar.py), the part the port uses.
+/// Plain data of the 1.20.1 jar (tools/jar_data.py), the part the port uses.
 #[allow(dead_code)]
-pub mod date_jar {
+pub mod jar_data {
     /// `SlotTypePreset` (id, priority): `getMessageBuilder` = priority + icon `curios:slot/empty_<id>_slot`.
     pub const SLOT_TYPE_PRESETS: [(&str, i32); 10] = [
         ("head", 40),
@@ -149,7 +149,7 @@ impl SlotBuilder {
             native_gui: None,
             cosmetic: None,
             render_toggle: None,
-            icon: date_jar::DEFAULT_ICON.to_owned(),
+            icon: jar_data::DEFAULT_ICON.to_owned(),
             drop_rule: DropRule::Default,
             validators: None,
         }
@@ -235,7 +235,7 @@ impl SlotBuilder {
         size += self.size_mod;
         SlotType {
             id: self.id.clone(),
-            order: self.order.unwrap_or(date_jar::DEFAULT_ORDER),
+            order: self.order.unwrap_or(jar_data::DEFAULT_ORDER),
             size: size.max(0),
             native_gui: self.native_gui.unwrap_or(true),
             cosmetic: self.cosmetic.unwrap_or(false),
@@ -402,7 +402,7 @@ impl LegacyMessage {
     }
     /// `SlotTypePreset.X.getMessageBuilder()` (None: not a preset id).
     pub fn preset(id: &str) -> Option<Self> {
-        let (pid, priority) = date_jar::SLOT_TYPE_PRESETS.iter().find(|(p, _)| *p == id)?;
+        let (pid, priority) = jar_data::SLOT_TYPE_PRESETS.iter().find(|(p, _)| *p == id)?;
         Some(LegacyMessage {
             priority: Some(*priority),
             icon: Some(format!("curios:slot/empty_{pid}_slot")),
@@ -2030,7 +2030,7 @@ pub fn equip_from_use<S: Stack>(
 }
 
 // =================================================================================================
-// What the client's screen needs (a section of the forja menu), as text lines
+// What the client's screen needs (a section of the foundry menu), as text lines
 // =================================================================================================
 
 /// The screen of the open Curios menu, as the server sends it.
@@ -2115,7 +2115,7 @@ impl View {
     }
 }
 
-/// Buttons of the screen (`forja::MenuInput::Button` ids).
+/// Buttons of the screen (`foundry::MenuInput::Button` ids).
 pub mod button {
     /// `CPacketPage(next)`: arg 1 next, 0 previous.
     pub const PAGE: u32 = 1;
@@ -2148,11 +2148,11 @@ pub mod screen {
 /// `CuriosScreen.getButtonOffset(isCreative)` + `GuiEventHandler`'s y offset (83 / 68): the Curios
 /// button's corner relative to the screen's left/top.
 pub fn button_offset(creative: bool) -> (i32, i32) {
-    let corner = date_jar::BUTTON_CORNERS
+    let corner = jar_data::BUTTON_CORNERS
         .iter()
         .find(|c| c.0 == config::CLIENT_BUTTON_CORNER)
         .copied()
-        .unwrap_or(date_jar::BUTTON_CORNERS[0]);
+        .unwrap_or(jar_data::BUTTON_CORNERS[0]);
     if creative {
         (corner.3 + config::CLIENT_CREATIVE_BUTTON_XOFFSET, corner.4 + config::CLIENT_CREATIVE_BUTTON_YOFFSET + 68)
     } else {

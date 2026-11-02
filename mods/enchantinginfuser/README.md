@@ -7,7 +7,7 @@ An enchanting table where you choose the enchantments and their levels yourself,
 ## Differences from the original
 
 - The floating book is the vanilla enchanting table's; the comparator reads 0.
-- Missing: the armour and offhand slots of the menu, the search box; a client without forja cannot open it.
+- Missing: the armour and offhand slots of the menu, the search box; a client without foundry cannot open it.
 - Settings the original reads from its config file are fixed in code, with the values of the 1.20.1 pack this port was made for (the original's defaults unless the source says otherwise).
 
 ## Original
@@ -30,7 +30,7 @@ Pinned to Horizon `142388e1c136e622652ec7505af15d8ad195e041` and horizon-mixins 
 2. In the Horizon launcher: **Mods**, install the file (the first native mod shows a notice and turns on Settings -> Game -> **Native mods (experimental)**), then **Build** and confirm the red warning. From a terminal: `horizon-launcher native-build mods/enchantinginfuser --instance <name> --trust-native-code`.
 3. Play the instance the launcher built.
 
-Needs in the same build: `forja` (mods/forja).
+Needs in the same build: `foundry` (mods/foundry).
 
 The rules have their own tests, without the game: `cargo test` in this folder. Some tests also read your generated content when it is in `content/` at the root of this repository, and skip otherwise.
 

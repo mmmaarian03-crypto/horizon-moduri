@@ -10,7 +10,7 @@
 // Server and client (Horizon #1514: single player is an integrated server, the window is its guest): the pickup, the placement,
 // the slowness, the slot and the death run where the world is, the in-frame host's game or a server, for a guest inside its turn
 // (`as_guest`: its body, inventory, keys and data). The guests' tick is `tick_guests`. What the client needs (what is carried, the
-// slot) comes over forja's channel `carryon:sync` (`CarryOnDataManager`'s sync of the original); the client's carry key goes the
+// slot) comes over foundry's channel `carryon:sync` (`CarryOnDataManager`'s sync of the original); the client's carry key goes the
 // other way on `carryon:key` (the original's key packet), so a key other than Shift works for guests too.
 #[allow(unused_imports)]
 use super::{Game, Result, Screen, lan::LanHost};
@@ -49,9 +49,9 @@ const KEY_DEFAULT: &str = "key.keyboard.left.shift";
 /// slot that stays selected.
 type Sync = (String, String, u32);
 /// Server -> client: the player's carry, whenever it changes (and once to every new guest).
-const SYNC: super::forja::Channel<Sync> = super::forja::Channel::new("carryon:sync");
+const SYNC: super::foundry::Channel<Sync> = super::foundry::Channel::new("carryon:sync");
 /// Client -> server: the client's carry key is held or not (sent when it changes).
-const KEY: super::forja::Channel<bool> = super::forja::Channel::new("carryon:key");
+const KEY: super::foundry::Channel<bool> = super::foundry::Channel::new("carryon:key");
 
 #[derive(Default)]
 struct ServerSide {
@@ -78,7 +78,7 @@ fn carryon_register() {
     if DONE.swap(true, std::sync::atomic::Ordering::Relaxed) {
         return;
     }
-    super::forja::register_server_channel(KEY.id, carryon_key_from_client);
+    super::foundry::register_server_channel(KEY.id, carryon_key_from_client);
 }
 
 /// A guest's client reported its carry key.
@@ -635,13 +635,13 @@ impl Game<'_> {
                     }
                 }
             }
-            if !super::forja::guest_has_forja(conn) {
+            if !super::foundry::guest_has_foundry(conn) {
                 continue;
             }
             let now = sync_of(carry_of(&host.hub.guests[i].saved).as_ref());
             let changed = SERVER.with(|s| s.borrow().sent.get(&conn) != Some(&now));
             if changed {
-                super::forja::send_to_guest(host, conn, SYNC.id, &SYNC.encode(&now));
+                super::foundry::send_to_guest(host, conn, SYNC.id, &SYNC.encode(&now));
                 SERVER.with(|s| s.borrow_mut().sent.insert(conn, now));
             }
         }
@@ -653,19 +653,19 @@ impl Game<'_> {
         if self.remote.is_none() {
             return;
         }
-        for body in super::forja::client_take(SYNC.id) {
+        for body in super::foundry::client_take(SYNC.id) {
             if let Some(sync) = SYNC.decode(&body) {
                 let carrying = engine::CarryType::from_name(&sync.0) != engine::CarryType::Invalid;
                 CLIENT.with(|c| c.borrow_mut().carry = carrying.then_some(sync));
             }
         }
-        if !super::forja::server_has_forja() {
+        if !super::foundry::server_has_foundry() {
             CLIENT.with(|c| *c.borrow_mut() = ClientSide::default());
             return;
         }
         let name = self.native_mod_key(ID, "carry", KEY_DEFAULT);
         let held = self.keys.iter().any(|k| horizon_client::keybinds::key_name(*k) == Some(name.as_str()));
-        if CLIENT.with(|c| c.borrow().key_sent != Some(held)) && super::forja::send_to_server(self, KEY.id, &KEY.encode(&held)) {
+        if CLIENT.with(|c| c.borrow().key_sent != Some(held)) && super::foundry::send_to_server(self, KEY.id, &KEY.encode(&held)) {
             CLIENT.with(|c| c.borrow_mut().key_sent = Some(held));
         }
         // The slot of the carry stays selected here too (`CarryOnCommonClient.onCarryClientTick`).
@@ -719,15 +719,15 @@ impl Game<'_> {
                 let pairs: Vec<(&str, &str)> = props.iter().map(|(k, v)| (k.as_str(), v.as_str())).collect();
                 let state = kit_blocks::with_props(self, default, &pairs).unwrap_or(default);
                 let mut spot = here;
-                for cand in engine::death_candidates(here, p) {
-                    if !self.world.loaded(cand[0], cand[2]) {
+                for candidate in engine::death_candidates(here, p) {
+                    if !self.world.loaded(candidate[0], candidate[2]) {
                         continue;
                     }
-                    let id = self.world.block(cand[0], cand[1], cand[2]);
+                    let id = self.world.block(candidate[0], candidate[1], candidate[2]);
                     let free = self.res.facts().is_air(id) || self.res.facts().get(id).replaceable;
-                    let at = BlockPos::new(cand[0], cand[1], cand[2]);
+                    let at = BlockPos::new(candidate[0], candidate[1], candidate[2]);
                     if free && self.with_level(|b, l, t| b.can_survive(l, t, at, state)) {
-                        spot = cand;
+                        spot = candidate;
                         break;
                     }
                 }

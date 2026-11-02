@@ -13,7 +13,7 @@
 //   guest's menu from the table when it opens, copies it back on every change and keeps the grid in
 //   the table when it closes;
 // - one player at a time holds a table's grid (`engine::may_bind`); another one gets a plain table;
-// - the hovering items are the client's: a server sends each guest the tables of his level on forja's
+// - the hovering items are the client's: a server sends each guest the tables of his level on foundry's
 //   channel (`visualworkbench:tables`, the world file's text, again whenever they change) and the client
 //   turns and draws them.
 use super::{Game, lan::LanHost};
@@ -356,7 +356,7 @@ use std::{
 
 const TABLE: &str = "minecraft:crafting_table";
 /// Server -> client: (dimension, the tables of that level as the world file's text).
-const TABLES: super::forja::Channel<(String, String)> = super::forja::Channel::new("visualworkbench:tables");
+const TABLES: super::foundry::Channel<(String, String)> = super::foundry::Channel::new("visualworkbench:tables");
 
 struct LevelState {
     root: PathBuf,
@@ -695,7 +695,7 @@ impl Game<'_> {
         .unwrap_or_default()
     }
 
-    /// HEAD on `tick_guests` (part 2, after the held tables): each guest with forja in the level in place
+    /// HEAD on `tick_guests` (part 2, after the held tables): each guest with foundry in the level in place
     /// gets its tables again when they changed (or when he is new here).
     pub(super) fn visualworkbench_send_tables(&mut self, host: &LanHost) {
         if self.remote.is_some() || self.world_root.as_os_str().is_empty() {
@@ -709,7 +709,7 @@ impl Game<'_> {
                 .hub
                 .guests
                 .iter()
-                .filter(|g| host.hub.here(g) && g.loaded && super::forja::guest_has_forja(g.conn))
+                .filter(|g| host.hub.here(g) && g.loaded && super::foundry::guest_has_foundry(g.conn))
                 .filter(|g| rt.sent.get(&g.conn) != Some(&(dim, generation)))
                 .map(|g| g.conn)
                 .collect();
@@ -725,7 +725,7 @@ impl Game<'_> {
         if let Some((want, text)) = out {
             let body = TABLES.encode(&(dim.to_owned(), text));
             for conn in want {
-                super::forja::send_to_guest(host, conn, TABLES.id, &body);
+                super::foundry::send_to_guest(host, conn, TABLES.id, &body);
             }
         }
     }
@@ -736,8 +736,8 @@ impl Game<'_> {
         if self.remote.is_none() {
             return;
         }
-        let got = super::forja::client_take(TABLES.id).into_iter().filter_map(|b| TABLES.decode(&b)).last();
-        let forja = super::forja::server_has_forja();
+        let got = super::foundry::client_take(TABLES.id).into_iter().filter_map(|b| TABLES.decode(&b)).last();
+        let foundry = super::foundry::server_has_foundry();
         let player = self.player.as_ref().map(|p| p.position);
         with_rt(|rt| {
             if let Some((dim, text)) = got {
@@ -745,7 +745,7 @@ impl Game<'_> {
                 let mut anims = rt.mirror.take().filter(|m| m.dim == dim).map(|m| m.anims).unwrap_or_default();
                 anims.retain(|p, _| store.tables.contains_key(p));
                 rt.mirror = Some(Mirror { dim, store, anims });
-            } else if !forja {
+            } else if !foundry {
                 rt.mirror = None;
             }
             if let Some(m) = rt.mirror.as_mut() {

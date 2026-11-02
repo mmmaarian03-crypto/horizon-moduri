@@ -1,7 +1,7 @@
 // EnderStorage for Horizon: the rules, without any game code.
 // Written from EnderStorage 1.20.1-2.11.0.188 (covers1624 / ChickenBones, MIT), the jar the pack plays;
-// the source is branch 1.20.1 of TheCBProject/EnderStorage (surse/enderstorage) and, for the colours,
-// CodeChickenLib 1.20.1 (surse/codechickenlib: EnumColour, Rotation).
+// the source is branch 1.20.1 of TheCBProject/EnderStorage (sources/enderstorage) and, for the colours,
+// CodeChickenLib 1.20.1 (sources/codechickenlib: EnumColour, Rotation).
 //
 // The game side (native/horizon.rs) keeps what the original keeps in `EnderStorageManager`
 // (one inventory / tank per frequency, in the world folder) and gives each Ender Chest a

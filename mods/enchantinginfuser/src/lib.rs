@@ -798,7 +798,7 @@ pub fn bar_position(my: f32) -> f32 {
 
 // ------------------------------------------------------------------------------------- the view
 
-/// What the screen shows (the server's session, as a forja menu section for a guest's window).
+/// What the screen shows (the server's session, as a foundry menu section for a guest's window).
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct View {
     pub rows: Vec<Row>,

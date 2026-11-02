@@ -24,7 +24,7 @@ helper = "open.rs"
 bindings = []
 
 # LivingTickEvent of every guest (the single player window is one): the guests' tick, not while
-# paused, before forja syncs the menus (lan_living_flags comes after it in the same pass).
+# paused, before foundry syncs the menus (lan_living_flags comes after it in the same pass).
 [[injection]]
 id = "guests-tick"
 kind = "HEAD"
@@ -35,7 +35,7 @@ bindings = [
   { name = "host", ty = "&mut crate::game::lan::LanHost", value = "&mut *host" },
 ]
 
-# Every pass, paused or not, before forja checks its menus: the mirrors a save took out go back.
+# Every pass, paused or not, before foundry checks its menus: the mirrors a save took out go back.
 [[injection]]
 id = "guests-pass"
 kind = "HEAD"
@@ -162,7 +162,7 @@ bindings = [
 
 # ---- the Curios menu (CuriosContainerV2) ----
 
-# Every click of the open Curios menu (after the forja client hook, priority 300; before other mods).
+# Every click of the open Curios menu (after the foundry client hook, priority 300; before other mods).
 [[injection]]
 id = "menu-ops"
 kind = "HEAD"
@@ -190,7 +190,7 @@ bindings = [
   { name = "dragged", ty = "usize", value = "dragged" },
 ]
 
-# The in-frame host menu closes (a guest menu closes through forja).
+# The in-frame host menu closes (a guest menu closes through foundry).
 [[injection]]
 id = "close"
 kind = "HEAD"

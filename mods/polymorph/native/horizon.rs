@@ -9,7 +9,7 @@
 // - the selector and the popup are the client's (the window draws them over its crafting screen; the result
 //   slot a server's client shows is computed from its own grid, `craft_recipe`);
 // - the crafting itself is the server's: a guest's grids are the server's menu engine (`lan_crafting`), which
-//   reads the choice of the guest whose click it runs. The choice travels on forja's channel
+//   reads the choice of the guest whose click it runs. The choice travels on foundry's channel
 //   (`polymorph:pick` client -> server, `polymorph:sel` server -> client when the guest joins) and is kept in
 //   the guest's own player data (`saved`); the in-frame host keeps the world's `selection.txt`;
 // - the hand-over file is per process and thread (`pick_path`): the window and the integrated server are two
@@ -37,9 +37,9 @@ const PICK_FILE: &str = "horizon-polymorph-pick";
 /// The key of a guest's choice in his player data (`Guest::saved`).
 const KEY: &str = "PolymorphSelection";
 /// Client -> server: the recipe the player chose in the popup (`ServerboundSelectRecipe` of the original).
-const PICK: super::forja::Channel<String> = super::forja::Channel::new("polymorph:pick");
+const PICK: super::foundry::Channel<String> = super::foundry::Channel::new("polymorph:pick");
 /// Server -> client: the guest's remembered choice, once when he joins.
-const SEL: super::forja::Channel<Option<String>> = super::forja::Channel::new("polymorph:sel");
+const SEL: super::foundry::Channel<Option<String>> = super::foundry::Channel::new("polymorph:sel");
 
 /// The server half of `polymorph:pick` (idempotent; the registry is the process's).
 fn polymorph_register() {
@@ -47,7 +47,7 @@ fn polymorph_register() {
     if DONE.swap(true, std::sync::atomic::Ordering::Relaxed) {
         return;
     }
-    super::forja::register_server_channel(PICK.id, polymorph_pick_from_client);
+    super::foundry::register_server_channel(PICK.id, polymorph_pick_from_client);
 }
 /// A guest chose a recipe: it is his from now on (his player data, saved with him).
 fn polymorph_pick_from_client(_game: &mut Game<'_>, host: &mut LanHost, conn: u32, body: &[u8]) {
@@ -223,12 +223,12 @@ impl Game<'_> {
         (0..n * n).map(|i| self.craft_grid[i].clone()).collect()
     }
     /// The crafting screen Polymorph decorates: the inventory's 2x2 or a crafting table. A server's client
-    /// (single player's window included) needs forja on its server, which crafts the choice.
+    /// (single player's window included) needs foundry on its server, which crafts the choice.
     fn polymorph_kind(&self) -> Option<engine::Kind> {
         if self.screen != Screen::Inventory || self.container.is_some() {
             return None;
         }
-        if self.remote.is_some() && !super::forja::server_has_forja() {
+        if self.remote.is_some() && !super::foundry::server_has_foundry() {
             return None;
         }
         if !self.slots().contains(&200) {
@@ -265,10 +265,10 @@ impl Game<'_> {
 
     /// HEAD (cancellable) on `Game::craft_recipe`: the result slot, the shift-click loop and the display
     /// use the chosen recipe; `None` leaves the game's own first match.
-    /// A server's client shows the result its server will craft (the choice it sent); without forja there
+    /// A server's client shows the result its server will craft (the choice it sent); without foundry there
     /// the server crafts the first match.
     pub(super) fn polymorph_craft(&self) -> Option<(String, ItemStack)> {
-        if self.remote.is_some() && !super::forja::server_has_forja() {
+        if self.remote.is_some() && !super::foundry::server_has_foundry() {
             return None;
         }
         self.polymorph_load();
@@ -375,7 +375,7 @@ impl Game<'_> {
                     publish(&s.remembered);
                 });
                 if remote {
-                    super::forja::send_to_server(self, PICK.id, &PICK.encode(&id));
+                    super::foundry::send_to_server(self, PICK.id, &PICK.encode(&id));
                 }
                 self.audio.play_button_click();
                 true
@@ -434,7 +434,7 @@ impl Game<'_> {
         }
     }
 
-    /// HEAD on `tick_guests` (a server): each guest with forja is told his remembered choice once.
+    /// HEAD on `tick_guests` (a server): each guest with foundry is told his remembered choice once.
     pub(super) fn polymorph_guests_tick(&mut self, host: &mut LanHost) {
         if self.remote.is_some() {
             return;
@@ -447,25 +447,25 @@ impl Game<'_> {
                 .hub
                 .guests
                 .iter()
-                .filter(|g| g.loaded && !sent.contains(&g.conn) && super::forja::guest_has_forja(g.conn))
+                .filter(|g| g.loaded && !sent.contains(&g.conn) && super::foundry::guest_has_foundry(g.conn))
                 .map(|g| (g.conn, read_saved(&g.saved)))
                 .collect();
             sent.extend(new.iter().map(|(c, _)| *c));
             new
         });
         for (conn, choice) in new {
-            super::forja::send_to_guest(host, conn, SEL.id, &SEL.encode(&choice));
+            super::foundry::send_to_guest(host, conn, SEL.id, &SEL.encode(&choice));
         }
     }
 
     /// HEAD on `native_tick` (every `Game`, the window included): a server's client takes the choice its
-    /// server remembers for it; without forja there it has none.
+    /// server remembers for it; without foundry there it has none.
     pub(super) fn polymorph_client_tick(&mut self) {
         if self.remote.is_none() {
             return;
         }
-        let got = super::forja::client_take(SEL.id).into_iter().filter_map(|b| SEL.decode(&b)).last();
-        let forja = super::forja::server_has_forja();
+        let got = super::foundry::client_take(SEL.id).into_iter().filter_map(|b| SEL.decode(&b)).last();
+        let foundry = super::foundry::server_has_foundry();
         STORE.with(|s| {
             let mut s = s.borrow_mut();
             if let Some(choice) = got {
@@ -473,7 +473,7 @@ impl Game<'_> {
                 s.loaded = true;
                 s.open = false;
                 publish(&s.remembered);
-            } else if !forja && s.remembered.is_some() {
+            } else if !foundry && s.remembered.is_some() {
                 s.remembered = None;
                 publish(&None);
             }

@@ -6,9 +6,9 @@ version = 4
 name = "horizon-enderstorage"
 version = "0.1.0"
 dependencies = [
- "horizon-forja",
+ "horizon-foundry",
 ]
 
 [[package]]
-name = "horizon-forja"
+name = "horizon-foundry"
 version = "0.1.0"

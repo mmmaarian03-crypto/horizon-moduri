@@ -9,7 +9,7 @@ use super::{BlockStateId, ProtoChunk};
 mod engine {
     // Applied Energistics 2 for Horizon, stage 1 (item storage network): the rules, without game code.
 // Written from AE2 forge 15.4.11 for Minecraft 1.20.1 (AppliedEnergistics, LGPL-3.0; the public
-// source at tag forge/v15.4.11, cloned in surse/ae2, the same version as the pack's jar
+// source at tag forge/v15.4.11, cloned in sources/ae2, the same version as the pack's jar
 // appliedenergistics2-forge-15.4.11.jar) and the pack's config (config/ae2/common.json, client.json).
 // Every value names the Java class it comes from.
 // This file is pasted into the game as `crate::game::ae2::engine` (tools/hnmod.py bundle) and is also the
@@ -470,7 +470,7 @@ pub fn powered_extract(e: &mut dyn EnergySource, m: &mut dyn Mounts, key: &Key, 
     net_extract(m, key, n, false)
 }
 
-/// An external inventory seen as slots (`IItemHandler` through forja), for storage, import and
+/// An external inventory seen as slots (`IItemHandler` through foundry), for storage, import and
 /// export buses and the interface.
 pub trait Inv {
     fn slots(&mut self) -> usize;
@@ -2122,7 +2122,7 @@ impl State {
 }
 
 // ---------------------------------------------------------------------------------------------
-// 11. The cable bus (CableBusBlock / CableBusContainer): every cable and part lives in a forja
+// 11. The cable bus (CableBusBlock / CableBusContainer): every cable and part lives in a foundry
 //     compound block (`ae2:cable_bus`), cables in the centre, parts on the faces.
 
 /// The host block of every cable and part.

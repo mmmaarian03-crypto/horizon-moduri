@@ -13,7 +13,7 @@ use std::{cell::RefCell, collections::HashMap, rc::Rc};
 mod engine {
     // Presence Footsteps for Horizon: the rules, without any game code.
 // Written from the 1.20 branch of Sollace/Hurricaaane's Presence Footsteps (MIT; sources cloned in
-// `surse\presencefootsteps`; the Forge 1.0.0 jar of the pack is that branch): `TerrestrialStepSoundGenerator`,
+// `sources/presencefootsteps`; the Forge 1.0.0 jar of the pack is that branch): `TerrestrialStepSoundGenerator`,
 // `MotionTracker`, `QuadrupedModifier`, `PFSolver`, `AssociationPool`, `StateLookup`, `AbstractSubstrateLookup`,
 // `AcousticsFile` and the acoustics, `DelayedSoundPlayer`, `Variator`, `SoundEngine`. The winged generator is not
 // ported: the pack's locomotionmap has no FLYING entity.

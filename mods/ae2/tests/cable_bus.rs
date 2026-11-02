@@ -1,4 +1,4 @@
-// The cable bus: cables in the centre and parts on the faces of forja compound blocks, with AE2's
+// The cable bus: cables in the centre and parts on the faces of foundry compound blocks, with AE2's
 // connection rules (CableBusContainer.addPart / updateConnections) and the stage-1 migration.
 use horizon_ae2::*;
 use std::collections::BTreeSet;
@@ -136,15 +136,15 @@ fn ae2_part_numbers() {
 }
 
 #[test]
-fn ae2_parts_through_forja_turn_to_their_face() {
-    use horizon_forja as forja;
+fn ae2_parts_through_foundry_turn_to_their_face() {
+    use horizon_foundry as foundry;
     let t = part_def("ae2:terminal").unwrap();
-    let spec = forja::PartSpec::face(t.id, CABLE_BUS, t.id, t.boxes).cable_length(t.cable_length).facing_opposite();
+    let spec = foundry::PartSpec::face(t.id, CABLE_BUS, t.id, t.boxes).cable_length(t.cable_length).facing_opposite();
     // A terminal on the west face: its screen box hugs x = 0.
-    let boxes = forja::part_boxes(&spec, Some(forja::Dir::West), [None; 6], false);
+    let boxes = foundry::part_boxes(&spec, Some(foundry::Dir::West), [None; 6], false);
     assert_eq!(boxes[0], [0.0, 2.0 / 16.0, 2.0 / 16.0, 2.0 / 16.0, 14.0 / 16.0, 14.0 / 16.0]);
     // Its model state faces east (the stage-1 part blocks are drawn from the back).
-    assert_eq!(forja::look(&spec, Some(forja::Dir::West), [None; 6]).1, vec![("facing".to_owned(), "east".to_owned())]);
+    assert_eq!(foundry::look(&spec, Some(foundry::Dir::West), [None; 6]).1, vec![("facing".to_owned(), "east".to_owned())]);
 }
 
 #[test]

@@ -6,7 +6,7 @@ use super::{Game, Result};
 #[allow(dead_code)]
 mod engine {
     // Drip Sounds (waterdripsound) for Horizon: the rules, without any game code.
-// Written from the 1.20.1 jar (`Drip Sounds-0.6.3+1.20.1-Forge.jar`, decompiled in surse/waterdripsound/dec) and
+// Written from the 1.20.1 jar (`Drip Sounds-0.6.3+1.20.1-Forge.jar`, decompiled in sources/waterdripsound/dec) and
 // the pack's `config/waterdripsound.json`. This file is pasted into the game as
 // `crate::game::waterdripsound::engine` (tools/hnmod.py bundle) and is also the `horizon_waterdripsound` crate the tests use.
 

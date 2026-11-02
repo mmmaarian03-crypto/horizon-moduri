@@ -1,6 +1,6 @@
 // Storage Drawers for Horizon: the rules, without any game code.
 // Written from Storage Drawers 1.20.1 (jaquadro, MIT; the jar the pack plays is 12.15.1, the
-// source is the `1.20` branch in surse/storagedrawers) and the pack's storagedrawers-common.v2.toml.
+// source is the `1.20` branch in sources/storagedrawers) and the pack's storagedrawers-common.v2.toml.
 // Sources: BlockDrawers, BlockEntityDrawers(+Standard/Comp), StandardDrawerGroup,
 // FractionalDrawerGroup, UpgradeData, CompTierRegistry, BlockController, ItemKey classes.
 //

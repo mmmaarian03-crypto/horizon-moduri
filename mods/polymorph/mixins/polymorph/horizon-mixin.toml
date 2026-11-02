@@ -44,7 +44,7 @@ bindings = [
   { name = "env", ty = "&crate::menu::Env<'_>", value = "env" },
 ]
 
-# The selector button and popup, drawn over the crafting screen (taburi_creative hooks the same function).
+# The selector button and popup, drawn over the crafting screen (creative_tabs hooks the same function).
 [[injection]]
 id = "draw"
 kind = "HEAD"

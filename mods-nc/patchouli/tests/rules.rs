@@ -303,14 +303,14 @@ fn contents_load_with_languages_flags_and_errors() {
             ("templates/t", json!({"components": []})),
         ],
     );
-    // a Romanian name for one entry, and a broken file
-    f.0.insert("assets/test/patchouli_books/guide/ro_ro/entries/a/b.json".into(), entry("Adanc", "test:sub", vec![json!("x")]).to_string());
+    // a name in the player's language (ro_ro) for one entry, and a broken file
+    f.0.insert("assets/test/patchouli_books/guide/ro_ro/entries/a/b.json".into(), entry("Localized", "test:sub", vec![json!("x")]).to_string());
     f.0.insert("assets/test/patchouli_books/guide/en_us/entries/broken.json".into(), "{ nope".into());
     let b = load(&env, &f);
     let c = &b.contents;
     assert!(c.categories.contains_key("test:basics") && c.categories.contains_key("test:sub"));
     assert!(!c.categories.contains_key("test:hidden_by_flag"));
-    assert_eq!(c.entries["test:a/b"].name, "Adanc", "the player's language wins");
+    assert_eq!(c.entries["test:a/b"].name, "Localized", "the player's language wins");
     assert_eq!(c.categories["test:basics"].children, ["test:sub"]);
     assert_eq!(c.categories["test:sub"].entries, ["test:a/b"]);
     assert!(!c.entries.contains_key("test:lost"));

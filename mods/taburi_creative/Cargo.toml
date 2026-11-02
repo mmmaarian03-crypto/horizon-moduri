@@ -1,9 +1,0 @@
-[package]
-name = "horizon-taburi_creative"
-version = "0.1.0"
-edition = "2024"
-license = "MIT"
-publish = false
-description = "Creative tabs for mods: a native mod for Horizon"
-
-[dependencies]

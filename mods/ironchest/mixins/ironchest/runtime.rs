@@ -23,7 +23,7 @@ use std::time::{Duration, Instant};
 mod engine {
     // Iron Chests for Horizon: the rules of the chests, without any game code.
 // Written from Iron Chests 1.20.1-14.4.4 (progwml6, GPL-3.0), the jar the pack plays; its
-// source is commit d5bc625 of the 1.20.x branch (surse/ironchest): IronChestsTypes,
+// source is commit d5bc625 of the 1.20.x branch (sources/ironchest): IronChestsTypes,
 // IronChestsBlocks, IronChestMenu, DirtChestSlot, ChestUpgradeItem, IronChestsUpgradeType,
 // ICrystalChest, IronChestRenderer, DirtChestBlockEntity, Util.
 //
@@ -857,7 +857,7 @@ pub(crate) fn ironchest_is_chest(name: &str) -> bool {
     engine::size_of(name).is_some()
 }
 
-/// The chests' forja menu (mods/forja/API.md section 10, mod networking): the chest's block-entity slots are
+/// The chests' foundry menu (mods/foundry/API.md section 10, mod networking): the chest's block-entity slots are
 /// mirrored to the guest, its lid counts the guest among its openers, and every click runs this
 /// mod's own menu code on the server (`ironchest_menu_ops`, through the game's `menu_ops`).
 const MENU_KIND: &str = "ironchest:chest";
@@ -876,11 +876,11 @@ fn ironchest_register_menu() {
     if DONE.swap(true, std::sync::atomic::Ordering::Relaxed) {
         return;
     }
-    super::forja::register_menu(super::forja::MenuKind {
+    super::foundry::register_menu(super::foundry::MenuKind {
         lid: true,
         claims: Some(ironchest_menu_claims),
         valid: Some(ironchest_menu_valid),
-        ..super::forja::MenuKind::new(MENU_KIND)
+        ..super::foundry::MenuKind::new(MENU_KIND)
     });
 }
 
@@ -894,11 +894,11 @@ impl Game<'_> {
         Chest::parse(&self.res.facts().get(self.world.block(p[0], p[1], p[2])).name)
     }
     /// The chest whose menu is open here (not a station). On a server's client (single player's
-    /// window, a LAN guest) it is the chest's forja menu: the server runs it, this window draws it
-    /// from forja's mirror of its slots and sends the clicks back (forja's own `menu_ops` hook).
+    /// window, a LAN guest) it is the chest's foundry menu: the server runs it, this window draws it
+    /// from foundry's mirror of its slots and sends the clicks back (foundry's own `menu_ops` hook).
     fn ironchest_open_menu(&self) -> Option<(Chest, (i32, i32, i32))> {
         if self.remote.is_some() {
-            let (kind, p) = super::forja::guest_menu(self)?;
+            let (kind, p) = super::foundry::guest_menu(self)?;
             if kind != MENU_KIND {
                 return None;
             }
@@ -1000,7 +1000,7 @@ impl Game<'_> {
     pub(super) fn ironchest_tick(&mut self) {
         ironchest_register_menu();
         if self.remote.is_some() {
-            // A guest's window: the slots are the server's (forja's mirror).
+            // A guest's window: the slots are the server's (foundry's mirror).
             return;
         }
         if let Some(key) = self.container
@@ -1043,9 +1043,9 @@ impl Game<'_> {
 
     // ---- LAN guests (ServerPlayer.openMenu over the protocol) ----
 
-    /// A guest opened one of the chests. A guest whose client speaks forja (single player's own
+    /// A guest opened one of the chests. A guest whose client speaks foundry (single player's own
     /// window, a LAN friend on Horizon with these mods) gets the chest's own menu and screen as a
-    /// forja menu, every tier: the server runs this mod's menu code as the guest
+    /// foundry menu, every tier: the server runs this mod's menu code as the guest
     /// (`ironchest_menu_ops`), the client mirrors the slots. Any other client gets the protocol's
     /// vanilla menus: the iron chest (54) as generic_9x6 and the copper chest (45) as
     /// generic_9x5, with all their slots; the others have no vanilla menu, and the guest is told so.
@@ -1057,9 +1057,9 @@ impl Game<'_> {
     ) -> Option<bool> {
         let chest = self.ironchest_at([pos.0, pos.1, pos.2])?;
         ironchest_register_menu();
-        if super::forja::guest_has_forja(conn) {
+        if super::foundry::guest_has_foundry(conn) {
             engine::ensure_entity(&mut Live { game: self }, [pos.0, pos.1, pos.2]);
-            return Some(self.forja_menu_open(host, conn, MENU_KIND, [pos.0, pos.1, pos.2]));
+            return Some(self.foundry_menu_open(host, conn, MENU_KIND, [pos.0, pos.1, pos.2]));
         }
         let menu = match chest.tier {
             Tier::Iron => "minecraft:generic_9x6",

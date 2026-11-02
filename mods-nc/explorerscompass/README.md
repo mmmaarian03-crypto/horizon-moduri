@@ -30,7 +30,7 @@ Pinned to Horizon `142388e1c136e622652ec7505af15d8ad195e041` and horizon-mixins 
 2. In the Horizon launcher: **Mods**, install the file (the first native mod shows a notice and turns on Settings -> Game -> **Native mods (experimental)**), then **Build** and confirm the red warning. From a terminal: `horizon-launcher native-build mods-nc/explorerscompass --instance <name> --trust-native-code`.
 3. Play the instance the launcher built.
 
-Needs in the same build: `forja` (mods/forja).
+Needs in the same build: `foundry` (mods/foundry).
 
 The rules have their own tests, without the game: `cargo test` in this folder. Some tests also read your generated content when it is in `content/` at the root of this repository, and skip otherwise.
 

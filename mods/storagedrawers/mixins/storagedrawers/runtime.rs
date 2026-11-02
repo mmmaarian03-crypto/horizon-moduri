@@ -20,7 +20,7 @@ use winit::keyboard::KeyCode;
 mod engine {
     // Storage Drawers for Horizon: the rules, without any game code.
 // Written from Storage Drawers 1.20.1 (jaquadro, MIT; the jar the pack plays is 12.15.1, the
-// source is the `1.20` branch in surse/storagedrawers) and the pack's storagedrawers-common.v2.toml.
+// source is the `1.20` branch in sources/storagedrawers) and the pack's storagedrawers-common.v2.toml.
 // Sources: BlockDrawers, BlockEntityDrawers(+Standard/Comp), StandardDrawerGroup,
 // FractionalDrawerGroup, UpgradeData, CompTierRegistry, BlockController, ItemKey classes.
 //
@@ -2053,10 +2053,10 @@ pub(crate) fn storagedrawers_full(
 // Shift + right click with an empty hand opens it (`BlockDrawers.useSlotInvertible`). The menu's
 // slots are the drawer's block entity: its drawers (menu 300..300+n, `SlotDrawer`), then the 7
 // upgrade slots (`SlotUpgrade`), then the inventory. Single player's window and LAN guests get
-// it as a forja menu (mods/forja/API.md section 10): the server runs the clicks below as the guest, the
+// it as a foundry menu (mods/foundry/API.md section 10): the server runs the clicks below as the guest, the
 // client mirrors the slots and draws the screen with the same hooks as the in-frame host.
 
-/// The forja menu kind of the drawers' screen.
+/// The foundry menu kind of the drawers' screen.
 const MENU_KIND: &str = "storagedrawers:drawers";
 /// `DrawerScreen`: `imageWidth`, `imageHeight`.
 const GUI_W: f32 = 176.0;
@@ -2072,16 +2072,16 @@ fn sd_menu_claims(game: &mut Game<'_>, _conn: u32, p: [i32; 3]) -> bool {
 fn sd_menu_valid(game: &Game<'_>, _conn: u32, p: [i32; 3]) -> bool {
     matches!(game.sd_kind_at(p), Kind::Drawer(_))
 }
-/// Registers the screen's forja menu once (from the use, the world load and the draw hooks).
+/// Registers the screen's foundry menu once (from the use, the world load and the draw hooks).
 pub(super) fn storagedrawers_register_menu() {
     static DONE: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
     if DONE.swap(true, std::sync::atomic::Ordering::Relaxed) {
         return;
     }
-    super::forja::register_menu(super::forja::MenuKind {
+    super::foundry::register_menu(super::foundry::MenuKind {
         claims: Some(sd_menu_claims),
         valid: Some(sd_menu_valid),
-        ..super::forja::MenuKind::new(MENU_KIND)
+        ..super::foundry::MenuKind::new(MENU_KIND)
     });
 }
 
@@ -2423,7 +2423,7 @@ impl Game<'_> {
     // ---- the menu's clicks (server, or the in-frame host) ----
 
     /// `ContainerDrawers` + `AbstractContainerMenu.doClick` for the drawer's menu. `None`: not a
-    /// drawer's menu here (a client sends its clicks through forja, which comes first).
+    /// drawer's menu here (a client sends its clicks through foundry, which comes first).
     pub(super) fn storagedrawers_menu_ops(
         &mut self,
         ops: &[(Option<usize>, i32, horizon_client::menu::Input)],

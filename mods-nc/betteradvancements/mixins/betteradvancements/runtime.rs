@@ -16,7 +16,7 @@ use std::{cell::RefCell, sync::Arc};
 mod engine {
     // Better Advancements for Horizon: the rules, without any game code.
 // Written from Better Advancements 0.6.0.73 for Minecraft 1.20.1 (way2muchnoise, "Don't Be a Jerk"
-// non-commercial licence; the `1.20.1` branch cloned in `surse\betteradvancements`, read for this port:
+// non-commercial licence; the `1.20.1` branch cloned in `sources/betteradvancements`, read for this port:
 // `BetterAdvancementsScreen`, `BetterAdvancementTab`, `BetterAdvancementTabType`, `BetterAdvancementWidget`,
 // `BetterDisplayInfo`, `CriterionGrid`, `CriterionTranslator`, `CriteriaDetail`, `ColorHelper`,
 // `AdvancementComparer` and the Forge `ConfigValues`/`GuiOpenHandler`; the numbers below are theirs and the

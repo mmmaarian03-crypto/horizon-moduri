@@ -1,6 +1,6 @@
 // Iron Chests for Horizon: the rules of the chests, without any game code.
 // Written from Iron Chests 1.20.1-14.4.4 (progwml6, GPL-3.0), the jar the pack plays; its
-// source is commit d5bc625 of the 1.20.x branch (surse/ironchest): IronChestsTypes,
+// source is commit d5bc625 of the 1.20.x branch (sources/ironchest): IronChestsTypes,
 // IronChestsBlocks, IronChestMenu, DirtChestSlot, ChestUpgradeItem, IronChestsUpgradeType,
 // ICrystalChest, IronChestRenderer, DirtChestBlockEntity, Util.
 //

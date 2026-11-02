@@ -6,7 +6,7 @@ Bigger chests (copper, iron, gold, diamond, crystal, obsidian, dirt) and the upg
 
 ## Differences from the original
 
-- A guest without forja (vanilla Java client) cannot open the larger chests.
+- A guest without foundry (vanilla Java client) cannot open the larger chests.
 - From the vanilla chest template: chest items burn in a furnace, note blocks above sound like wood.
 - Settings the original reads from its config file are fixed in code, with the values of the 1.20.1 pack this port was made for (the original's defaults unless the source says otherwise).
 
@@ -30,7 +30,7 @@ Pinned to Horizon `142388e1c136e622652ec7505af15d8ad195e041` and horizon-mixins 
 2. In the Horizon launcher: **Mods**, install the file (the first native mod shows a notice and turns on Settings -> Game -> **Native mods (experimental)**), then **Build** and confirm the red warning. From a terminal: `horizon-launcher native-build mods/ironchest --instance <name> --trust-native-code`.
 3. Play the instance the launcher built.
 
-Needs in the same build: `forja` (mods/forja).
+Needs in the same build: `foundry` (mods/foundry).
 
 The rules have their own tests, without the game: `cargo test` in this folder. Some tests also read your generated content when it is in `content/` at the root of this repository, and skip otherwise.
 
