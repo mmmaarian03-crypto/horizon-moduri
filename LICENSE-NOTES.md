@@ -36,9 +36,7 @@ here.
 
 ## Points worth knowing
 
-- `tia` (Tiny Item Animations 1.1): that version is MIT (its LICENSE and mods.toml at the time). The repository moved
-  to a "Limited Platform Upload License" in August 2024 with no new code; the change does not take back the MIT
-  licence of the earlier version, but the author asks not to rehost it on public platforms.
+- `tia` (Tiny Item Animations) is left out: its author asks not to rehost it on public platforms.
 - `tlc` (The Lost Castle): LGPL-3.0 as its mods.toml and its Modrinth page declare; its repository's LICENSE.txt is
   only Forge's MDK notice.
 - `torchmaster`: MIT by its repository's LICENSE (branch mc/1.20.1) and its Modrinth page; the jar's mods.toml still
@@ -62,5 +60,5 @@ here.
 | `LGPL-3.0-only` | `ae2`, `carryon`, `fallingtree`, `hats`, `itemphysic`, `tlc`, `travelerstitles`, `waterdripsound`, `yungsbridges` |
 | `LGPL-3.0-or-later` | `comforts`, `curios`, `polymorph`, `smoothswapping` |
 | `LicenseRef-DBaJ-NC` | `betteradvancements` |
-| `MIT` | `a_good_place`, `capsule`, `clumps`, `ecran_incarcare`, `enderore`, `enderstorage`, `forja`, `hangglider`, `modonomicon`, `moreoverlays`, `neat`, `netherending`, `oreberriesreplanted`, `pornire_rapida`, `presencefootsteps`, `simplyjetpacks`, `soulshards`, `storagedrawers`, `taburi_creative`, `tia`, `torchmaster` |
+| `MIT` | `a_good_place`, `capsule`, `clumps`, `ecran_incarcare`, `enderore`, `enderstorage`, `forja`, `hangglider`, `modonomicon`, `moreoverlays`, `neat`, `netherending`, `oreberriesreplanted`, `pornire_rapida`, `presencefootsteps`, `simplyjetpacks`, `soulshards`, `storagedrawers`, `taburi_creative`, `torchmaster` |
 | `MPL-2.0` | `cavedust`, `easyanvils`, `enchantinginfuser`, `leavesbegone`, `overflowingbars`, `visualworkbench` |
