@@ -66,7 +66,6 @@ mods under **non-commercial** licences: they may be shared and changed, never so
 | [`soulshards`](mods/soulshards) | [Soul Shards 1.3.6](https://github.com/CreeperHost/SoulShards) by TehNut, CreeperHost | `MIT` |  |
 | [`storagedrawers`](mods/storagedrawers) | [Storage Drawers 12.15.1](https://github.com/jaquadro/StorageDrawers) by jaquadro (Texelsaur) | `MIT` |  |
 | [`tlc`](mods/tlc) | [The Lost Castle 1.0.3](https://github.com/Team-Remastered/The-Lost-Castle-Forge) by Team Remastered | `LGPL-3.0-only` |  |
-| [`tia`](mods/tia) | [Tiny Item Animations 1.1](https://github.com/Trivaxy/tiny-item-animations) by Trivaxy | `MIT` |  |
 | [`torchmaster`](mods/torchmaster) | [Torchmaster 20.1.9](https://github.com/Xalcon/TorchMaster) by Xalcon | `MIT` |  |
 | [`travelerstitles`](mods/travelerstitles) | [Traveler's Titles 4.0.2](https://github.com/YUNG-GANG/Travelers-Titles) by YUNGNICKYOUNG | `LGPL-3.0-only` |  |
 | [`visualworkbench`](mods/visualworkbench) | [Visual Workbench 8.0.1](https://github.com/Fuzss/visualworkbench) by Fuzs | `MPL-2.0` | forja |
