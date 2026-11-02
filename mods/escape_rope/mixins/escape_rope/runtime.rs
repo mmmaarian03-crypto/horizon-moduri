@@ -25,7 +25,7 @@ mod engine {
 
 pub type Pos = [i32; 3];
 
-/// Niciun fișier de config pentru acest mod în profilul pachetului.
+/// The pack has no config file for this mod.
 pub mod config {}
 
 pub const ITEM: &str = "escape_rope:escape_rope";

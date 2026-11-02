@@ -35,11 +35,14 @@ bindings = [
   { name = "stack", ty = "&horizon_client::items::ItemStack", value = "stack" },
 ]
 
-# Right click: BlockDrawers.use / BlockController.use (put, keys, upgrades) before the block's own use.
+# Right click: BlockDrawers.use / BlockController.use (put, keys, upgrades, Shift + empty hand =
+# the drawer's screen) before the block's own use. Priority 1100: before Carry On's 1000, whose
+# Shift + empty hand would pick the drawer up (the hook steps aside while the player carries).
 [[injection]]
 id = "use"
 kind = "HEAD"
 cancellable = true
+priority = 1100
 target = "horizon_client::game::copper_golems::Game<'_>::use_golem_statue"
 helper = "use.rs"
 bindings = [
@@ -194,4 +197,76 @@ target = "horizon_world::level::removal::pre_remove"
 helper = "pre_remove.rs"
 bindings = [
   { name = "name", ty = "&str", value = "name" },
+]
+
+# The drawer's screen (DrawerScreen): its height, slot coordinates, background and labels, the
+# drawer slots' items with their half-size counts (drawn over the menu's own slot drawing, which
+# `slot_view` would have replaced but it has a macro), and the menu's clicks (server / in-frame host).
+[[injection]]
+id = "screen-height"
+kind = "HEAD"
+cancellable = true
+priority = 400
+target = "horizon_client::game::machines::Game<'_>::screen_height"
+helper = "height.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "self" },
+]
+
+[[injection]]
+id = "slot-position"
+kind = "HEAD"
+cancellable = true
+priority = 400
+target = "horizon_client::game::machines::Game<'_>::machine_slot_position"
+helper = "slot_position.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "self" },
+  { name = "i", ty = "usize", value = "i" },
+]
+
+[[injection]]
+id = "draw-screen"
+kind = "HEAD"
+cancellable = true
+priority = 400
+target = "horizon_client::game::machines::Game<'_>::draw_machine_screen"
+helper = "draw.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "self" },
+  { name = "batch", ty = "&mut horizon_client::hud::HudBatch", value = "&mut *batch" },
+  { name = "ox", ty = "f32", value = "ox" },
+  { name = "oy", ty = "f32", value = "oy" },
+]
+
+[[injection]]
+id = "counts"
+kind = "HEAD"
+target = "horizon_client::game::Game<'_>::draw_carried"
+helper = "counts.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" },
+  { name = "batch", ty = "&mut horizon_client::hud::HudBatch", value = "&mut *batch" },
+]
+
+[[injection]]
+id = "menu-ops"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::Game<'_>::menu_ops"
+helper = "menu_ops.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "ops", ty = "&[(Option<usize>, i32, horizon_client::menu::Input)]", value = "ops" },
+]
+
+# CommonEventBusSubscriber.playerLeftClick: a creative left click on a drawer's front.
+[[injection]]
+id = "creative-mining"
+kind = "HEAD"
+cancellable = true
+target = "horizon_client::game::Game<'_>::tick_mining"
+helper = "mining.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
 ]

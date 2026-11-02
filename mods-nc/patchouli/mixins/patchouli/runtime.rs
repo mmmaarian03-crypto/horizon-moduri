@@ -39,8 +39,8 @@ use std::collections::{BTreeMap, BTreeSet, HashMap};
 
 pub type Pos = [i32; 3];
 
-/// Valorile pachetului (profilul the 1.20.1 pack/config), generate de tools/nou_mod.py.
-/// Păstrează doar ce folosește portul; scrie sursa fiecărei valori folosite.
+/// The pack's values (its 1.20.1 config folder), written out by a generator script.
+/// Keeps only what the port uses, with the source of each value.
 #[allow(dead_code)]
 pub mod config {
     // ---- patchouli-client.toml

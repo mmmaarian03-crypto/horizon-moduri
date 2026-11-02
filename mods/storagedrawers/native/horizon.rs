@@ -1,7 +1,7 @@
 // Storage Drawers inside Horizon's game (nightly 142388e1c). The rules are the engine below;
 // this part is the game's side. A drawer's items are Horizon's own `BlockEntity::Chest(Vec<..>)`
 // (the drawer's slots, then 7 upgrade slots), kept in `world.block_entities`, so saving, the
-// spill on removal and hoppers work on them (see ironchest/FUNDATIE.md). What is not an item
+// spill on removal and hoppers work on them (the ironchest pattern). What is not an item
 // (lock, quantify, concealment, suspend, priority, owner) is the engine's `Attrs`, one table for
 // the world, written to `data/storagedrawers/drawers.txt` beside the saves.
 //
@@ -485,6 +485,16 @@ impl Game<'_> {
     // ---- right click (use_hand's chain: before the block's own use) ----
 
     pub(super) fn storagedrawers_use(&mut self, pos: [i32; 3], held: Option<&ItemStack>) -> bool {
+        // FaceSlotBlock.use: the off hand's turn passes.
+        if self.hand != horizon_client::first_person::Hand::Main {
+            return false;
+        }
+        // A player carrying something with Carry On puts it down (its RightClickBlock handler
+        // comes first in the original); this hook runs before Carry On's for the drawer's own
+        // Shift + empty hand (the screen), so it steps aside here.
+        if sd_carrying(&self.level.player_extra) {
+            return false;
+        }
         match self.sd_kind_at(pos) {
             Kind::Drawer(_) => self.sd_use_drawer(pos, held),
             Kind::Controller => self.sd_use_controller(pos, held),
@@ -514,6 +524,13 @@ impl Game<'_> {
             return true;
         }
         let slot = self.sd_face_slot(pos, &d, &hit);
+        // BlockDrawers.useSlotInvertible: Shift + empty hand opens the drawer's screen
+        // (`enableUI = true` in the pack's storagedrawers-common.v2.toml), on any face.
+        if held.is_none() && self.sd_sneaking() {
+            self.sd_open_ui(pos, &d);
+            self.swing_arm();
+            return true;
+        }
         if let Some(held) = held {
             // Keys (ItemKey.useOn, any face; keyrings act as the key they hold).
             if let Some(key) = engine::Key::parse(&held.item) {
@@ -531,11 +548,6 @@ impl Game<'_> {
                 self.swing_arm();
                 return true;
             }
-        } else if self.sd_sneaking() {
-            // The drawer's screen is not available: Shift + empty hand takes an upgrade out.
-            self.sd_remove_upgrade(pos, &d);
-            self.swing_arm();
-            return true;
         }
         let Some(slot) = slot else {
             return false;
@@ -680,6 +692,7 @@ impl Game<'_> {
     }
     /// Shift + empty hand: the last upgrade comes out (`canRemoveUpgrade`: a storage upgrade only
     /// while what is stored still fits).
+    #[allow(dead_code)]
     fn sd_remove_upgrade(&mut self, pos: [i32; 3], d: &Drawer) {
         let n = d.block.drawers();
         let Some(items) = self.sd_items(pos) else {
@@ -773,6 +786,35 @@ impl Game<'_> {
             self.sd_store_attrs(pos, d.attrs);
             self.sd_give(pos, out);
         }
+    }
+
+    /// `CommonEventBusSubscriber.playerLeftClick`: a creative player's left click on a drawer
+    /// runs `leftAction` (an item out) and, on a face slot, cancels the break. `tick_mining` is
+    /// where a creative click breaks (the host's, and a guest's on the server); true = this
+    /// tick's mining is the drawer's.
+    pub(super) fn storagedrawers_creative_mining(&mut self) -> bool {
+        if !self.creative || !self.left || self.screen != super::Screen::Playing {
+            return false;
+        }
+        let Some(hit) = self.pick() else {
+            return false;
+        };
+        let Some(d) = self.sd_drawer(hit.pos) else {
+            return false;
+        };
+        if self.sd_face_slot(hit.pos, &d, &hit).is_none() {
+            return false;
+        }
+        // tick_mining's own countdown, which this tick replaces.
+        if self.destroy_delay > 0 {
+            self.destroy_delay -= 1;
+        }
+        if self.destroy_delay == 0 {
+            self.storagedrawers_attack(hit.pos);
+            // Creative mining's pause between two blocks (MultiPlayerGameMode.destroyDelay).
+            self.destroy_delay = 5;
+        }
+        true
     }
 
     // ---- the controller ----
@@ -989,12 +1031,18 @@ impl Game<'_> {
     // ---- the world's file ----
 
     pub(super) fn storagedrawers_load(&mut self) {
+        storagedrawers_register_menu();
+        // The table is the world's (the server's or the in-frame host's); a server's client has
+        // none, and the static is shared with the integrated server's thread.
+        if self.remote.is_some() {
+            return;
+        }
         let path = self.world_root.join("data/storagedrawers/drawers.txt");
         let text = std::fs::read_to_string(path).unwrap_or_default();
         with_state(|s| *s = engine::State::from_text(&text));
     }
     pub(super) fn storagedrawers_save(&mut self) {
-        if self.world_root.as_os_str().is_empty() {
+        if self.remote.is_some() || self.world_root.as_os_str().is_empty() {
             return;
         }
         let dim = self.sd_dim();
@@ -1170,4 +1218,838 @@ pub(crate) fn storagedrawers_full(
             None => false,
         },
     })
+}
+
+// ---- the drawer's screen (ContainerDrawers + DrawerScreen, 1.20.1) ----
+//
+// Shift + right click with an empty hand opens it (`BlockDrawers.useSlotInvertible`). The menu's
+// slots are the drawer's block entity: its drawers (menu 300..300+n, `SlotDrawer`), then the 7
+// upgrade slots (`SlotUpgrade`), then the inventory. Single player's window and LAN guests get
+// it as a forja menu (mods/forja/API.md section 10): the server runs the clicks below as the guest, the
+// client mirrors the slots and draws the screen with the same hooks as the in-frame host.
+
+/// The forja menu kind of the drawers' screen.
+const MENU_KIND: &str = "storagedrawers:drawers";
+/// `DrawerScreen`: `imageWidth`, `imageHeight`.
+const GUI_W: f32 = 176.0;
+const GUI_H: f32 = 199.0;
+
+fn sd_menu_claims(game: &mut Game<'_>, _conn: u32, p: [i32; 3]) -> bool {
+    let Kind::Drawer(block) = game.sd_kind_at(p) else {
+        return false;
+    };
+    game.sd_ensure(p, &block);
+    true
+}
+fn sd_menu_valid(game: &Game<'_>, _conn: u32, p: [i32; 3]) -> bool {
+    matches!(game.sd_kind_at(p), Kind::Drawer(_))
+}
+/// Registers the screen's forja menu once (from the use, the world load and the draw hooks).
+pub(super) fn storagedrawers_register_menu() {
+    static DONE: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+    if DONE.swap(true, std::sync::atomic::Ordering::Relaxed) {
+        return;
+    }
+    super::forja::register_menu(super::forja::MenuKind {
+        claims: Some(sd_menu_claims),
+        valid: Some(sd_menu_valid),
+        ..super::forja::MenuKind::new(MENU_KIND)
+    });
+}
+
+/// Carry On's `CarryOnData` in the player's data says the player carries a block or a mob.
+fn sd_carrying(extra: &Option<horizon_world::nbt::Tag>) -> bool {
+    let Some(horizon_world::nbt::Tag::Compound(map)) = extra.as_ref() else {
+        return false;
+    };
+    let Some(carry) = map.get(&"CarryOnData".into()) else {
+        return false;
+    };
+    let ty = horizon_client::save::text(carry.get("type")).unwrap_or_default();
+    !ty.is_empty() && ty != "INVALID"
+}
+
+/// `ContainerDrawers1/2/4/Comp2/Comp3.slotCoordinates`.
+fn sd_storage_xy(block: &Block, i: usize) -> (f32, f32) {
+    let (x, y) = match block.layout {
+        Layout::Standard(1) => (80, 36),
+        Layout::Standard(2) | Layout::Compacting(2) => [(80, 23), (80, 49)][i.min(1)],
+        Layout::Standard(_) => [(67, 23), (93, 23), (67, 49), (93, 49)][i.min(3)],
+        Layout::Compacting(_) => [(80, 23), (67, 49), (93, 49)][i.min(2)],
+    };
+    (x as f32, y as f32)
+}
+/// `DrawerScreen.Slot1/2/4/Compacting2/Compacting3` backgrounds (GUI sprites of the carry).
+fn sd_texture(block: &Block) -> &'static str {
+    match block.layout {
+        Layout::Standard(1) => "storagedrawers:block/gui/drawers_1",
+        Layout::Standard(2) => "storagedrawers:block/gui/drawers_2",
+        Layout::Standard(_) => "storagedrawers:block/gui/drawers_4",
+        Layout::Compacting(2) => "storagedrawers:block/gui/drawers_comp_2",
+        Layout::Compacting(_) => "storagedrawers:block/gui/drawers_comp",
+    }
+}
+/// `StorageGuiGraphics.renderItemDecorations`: the count of a drawer slot.
+fn sd_count_text(n: u32) -> String {
+    let f = n as f32;
+    if n >= 100_000_000 {
+        format!("{:.0}M", f / 1_000_000.0)
+    } else if n >= 1_000_000 {
+        format!("{:.1}M", f / 1_000_000.0)
+    } else if n >= 100_000 {
+        format!("{:.0}K", f / 1000.0)
+    } else if n >= 10_000 {
+        format!("{:.1}K", f / 1000.0)
+    } else {
+        n.to_string()
+    }
+}
+
+/// A drag across the menu (`AbstractContainerMenu.quickcraftSlots`), per player (`None`: the
+/// in-frame host).
+type SdDrag = (Option<u32>, u8, Vec<usize>);
+static DRAG: Mutex<Vec<SdDrag>> = Mutex::new(Vec::new());
+
+impl Game<'_> {
+    /// The drawer whose screen is open here (the host's own, a guest's on the server during its
+    /// turn, or this window's mirror of the server's).
+    fn sd_open_menu(&self) -> Option<([i32; 3], Block)> {
+        if self.screen != super::Screen::Inventory || self.station.is_some() {
+            return None;
+        }
+        let key = self.container?;
+        let p = [key.0, key.1, key.2];
+        let Kind::Drawer(block) = self.sd_kind_at(p) else {
+            return None;
+        };
+        match self.world.block_entities.get(&key) {
+            Some(BlockEntity::Chest(items)) if items.len() >= block.chest_size() => Some((p, block)),
+            _ => None,
+        }
+    }
+    /// `BlockDrawers.openUI`: the drawer's menu, as `open_menu` opens a container.
+    fn sd_open_ui(&mut self, pos: [i32; 3], d: &Drawer) {
+        storagedrawers_register_menu();
+        self.sd_ensure(pos, &d.block);
+        self.container = Some(key_of(pos));
+        self.screen = super::Screen::Inventory;
+        self.capture(false);
+        self.right = false;
+    }
+    /// The drawer's items (block entity) at `p`, read only.
+    fn sd_items_ref(&self, p: [i32; 3]) -> Option<&Vec<Option<ItemStack>>> {
+        match self.world.block_entities.get(&key_of(p)) {
+            Some(BlockEntity::Chest(items)) => Some(items),
+            _ => None,
+        }
+    }
+    /// What drawer slot `slot` holds and its count (`SlotDrawer.getItem`; compacting: the tier's
+    /// share of the pool).
+    fn sd_display(&self, p: [i32; 3], block: &Block, slot: usize) -> Option<(ItemStack, u32)> {
+        let items = self.sd_items_ref(p)?;
+        match block.layout {
+            Layout::Standard(_) => {
+                let s = items.get(slot)?.as_ref()?;
+                Some((s.clone(), s.count))
+            }
+            Layout::Compacting(n) => {
+                let s = items.get(..n)?.iter().flatten().next()?;
+                let chain = engine::chain_from_smallest(&s.item, n, rules());
+                let item = chain.items.get(slot)?;
+                if item.is_empty() {
+                    return None;
+                }
+                let rate = chain.rates.get(slot).copied().unwrap_or(1).max(1);
+                Some((ItemStack::new(item, 1), s.count / rate))
+            }
+        }
+    }
+    /// The upgrades in the drawer's upgrade slots, leaving out slot `skip`.
+    fn sd_ups_without(block: &Block, items: &[Option<ItemStack>], skip: Option<usize>) -> Vec<Upgrade> {
+        let n = block.drawers();
+        let ids: Vec<Option<&str>> = items[n..]
+            .iter()
+            .enumerate()
+            .map(|(k, s)| if Some(k) == skip { None } else { s.as_ref().map(|s| &*s.item) })
+            .collect();
+        engine::upgrades_of(&ids)
+    }
+    /// `stackCapacityCheck`: what the drawer holds fits the capacity `ups` would give.
+    fn sd_fits(&self, block: &Block, items: &[Option<ItemStack>], ups: &[Upgrade]) -> bool {
+        let n = block.drawers();
+        match block.layout {
+            Layout::Standard(_) => items[..n].iter().flatten().all(|s| {
+                s.count <= engine::slot_capacity(block, ups, cfg(), self.sd_max_stack(&s.item))
+            }),
+            Layout::Compacting(_) => match items[..n].iter().flatten().next() {
+                Some(s) => {
+                    let chain = engine::chain_from_smallest(&s.item, n, rules());
+                    let top = self.sd_max_stack(&chain.items[0]);
+                    s.count <= engine::pool_capacity(&chain, ups, block, cfg(), top)
+                }
+                None => true,
+            },
+        }
+    }
+    /// `SlotUpgrade.canTakeStack(player)`.
+    fn sd_can_take_upgrade(&self, block: &Block, items: &[Option<ItemStack>], k: usize) -> bool {
+        let Some(s) = items.get(block.drawers() + k).and_then(Option::as_ref) else {
+            return false;
+        };
+        match Upgrade::parse(&s.item) {
+            // canRemoveStorageUpgrade: the contents still fit without it.
+            Some(Upgrade::Storage(_)) => {
+                self.sd_fits(block, items, &Self::sd_ups_without(block, items, Some(k)))
+            }
+            Some(Upgrade::CreativeStorage | Upgrade::CreativeVending) => self.creative,
+            _ => true,
+        }
+    }
+    /// `SlotUpgrade.mayPlace`: an empty slot takes what `canAddUpgrade` allows; a filled one only
+    /// a storage upgrade swapped in (`canSwapUpgrade`).
+    fn sd_can_place_upgrade(
+        &self,
+        block: &Block,
+        items: &[Option<ItemStack>],
+        k: usize,
+        stack: &ItemStack,
+    ) -> bool {
+        let Some(up) = Upgrade::parse(&stack.item) else {
+            return false;
+        };
+        let n = block.drawers();
+        let all = Self::sd_ups_without(block, items, None);
+        match items.get(n + k).and_then(Option::as_ref) {
+            None => {
+                if !engine::can_add_upgrade(&all, up) {
+                    return false;
+                }
+                if up == Upgrade::OneStack {
+                    let mut with = all.clone();
+                    with.push(up);
+                    return self.sd_fits(block, items, &with);
+                }
+                true
+            }
+            Some(cur) => {
+                if stack.count > 1 {
+                    return false;
+                }
+                let Upgrade::Storage(add) = up else {
+                    return false;
+                };
+                match Upgrade::parse(&cur.item) {
+                    Some(Upgrade::OneStack) => true,
+                    Some(Upgrade::Storage(have)) => {
+                        if add > have {
+                            return true;
+                        }
+                        let mut swapped = Self::sd_ups_without(block, items, Some(k));
+                        swapped.push(up);
+                        self.sd_fits(block, items, &swapped)
+                    }
+                    _ => false,
+                }
+            }
+        }
+    }
+
+    // ---- the screen's geometry and drawing (window: the host's or a guest's mirror) ----
+
+    pub(super) fn storagedrawers_screen_height(&self) -> Option<f32> {
+        self.sd_open_menu().map(|_| GUI_H)
+    }
+    /// `ContainerDrawers`: drawers at their coordinates, upgrades at (26 + 18k, 86), the inventory
+    /// at y 117, the hotbar at 175.
+    pub(super) fn storagedrawers_slot_position(&self, i: usize) -> Option<Option<(f32, f32)>> {
+        let (_, block) = self.sd_open_menu()?;
+        let n = block.drawers();
+        Some(match i {
+            0..9 => Some((8.0 + i as f32 * 18.0, 175.0)),
+            9..36 => Some((
+                8.0 + ((i - 9) % 9) as f32 * 18.0,
+                117.0 + ((i - 9) / 9) as f32 * 18.0,
+            )),
+            300..500 if i - 300 < n => Some(sd_storage_xy(&block, i - 300)),
+            300..500 if i - 300 < n + engine::UPGRADE_SLOTS => {
+                Some((26.0 + (i - 300 - n) as f32 * 18.0, 86.0))
+            }
+            _ => None,
+        })
+    }
+    /// `DrawerScreen.renderBg` + `renderLabels`.
+    pub(super) fn storagedrawers_draw_screen(
+        &self,
+        batch: &mut horizon_client::hud::HudBatch,
+        ox: f32,
+        oy: f32,
+    ) -> bool {
+        let Some((p, block)) = self.sd_open_menu() else {
+            return false;
+        };
+        let atlas = &self.gui.atlas;
+        let grey = horizon_client::hud::rgba(64, 64, 64, 255);
+        let sprite = atlas.sprites.get(sd_texture(&block)).copied();
+        let blit = |batch: &mut horizon_client::hud::HudBatch,
+                    x: f32,
+                    y: f32,
+                    u: f32,
+                    v: f32,
+                    w: f32,
+                    h: f32| {
+            if let Some(rect) = sprite {
+                let mut r = rect;
+                let (du, dv) = ((rect.u1 - rect.u0) / 256.0, (rect.v1 - rect.v0) / 256.0);
+                r.u0 = rect.u0 + u * du;
+                r.v0 = rect.v0 + v * dv;
+                r.u1 = r.u0 + w * du;
+                r.v1 = r.v0 + h * dv;
+                batch.rect_uv(ox + x, oy + y, w, h, r, u32::MAX);
+            }
+        };
+        if sprite.is_some() {
+            blit(batch, 0.0, 0.0, 0.0, 0.0, GUI_W, GUI_H);
+        } else {
+            batch.fill(atlas, ox, oy, GUI_W, GUI_H, horizon_client::hud::rgba(198, 198, 198, 255));
+        }
+        // The drawer slots' frame (smDisabledX/Y), under their items.
+        for i in 0..block.drawers() {
+            let (x, y) = sd_storage_xy(&block, i);
+            blit(batch, x, y, 176.0, 0.0, 16.0, 16.0);
+        }
+        let items: Vec<Option<ItemStack>> = self.sd_items_ref(p).cloned().unwrap_or_default();
+        let n = block.drawers();
+        let full = items.len() >= block.chest_size();
+        if full {
+            // InventoryUpgrade.slotIsLocked: a storage upgrade the contents still need.
+            for k in 0..engine::UPGRADE_SLOTS {
+                let locked = items[n + k].as_ref().is_some_and(|s| {
+                    matches!(Upgrade::parse(&s.item), Some(Upgrade::Storage(_)))
+                        && !self.sd_fits(&block, &items, &Self::sd_ups_without(&block, &items, Some(k)))
+                });
+                if locked {
+                    blit(batch, 26.0 + k as f32 * 18.0, 86.0, 176.0, 0.0, 16.0, 16.0);
+                }
+            }
+        }
+        let name = self.res.facts().get(self.world.block(p[0], p[1], p[2])).name.clone();
+        let fallback = name.rsplit(':').next().unwrap_or("").replace('_', " ");
+        let key = format!("block.{}", name.replace(':', "."));
+        let title = self.container_title(self.translate(&key, &fallback));
+        batch.text(atlas, &title, ox + 8.0, oy + 6.0, grey, false);
+        let upgrades = self.translate("container.storagedrawers.upgrades", "Upgrades");
+        batch.text(atlas, &upgrades, ox + 8.0, oy + 75.0, grey, false);
+        let inventory = self.translate("container.inventory", "Inventory");
+        batch.text(atlas, &inventory, ox + 8.0, oy + GUI_H - 96.0 + 2.0, grey, false);
+        // ContainerDrawers.getStackCapacity: the stacks a drawer slot holds.
+        let ups = if full {
+            Self::sd_ups_without(&block, &items, None)
+        } else {
+            Vec::new()
+        };
+        let mult = engine::stack_capacity(&block, &ups, cfg()).to_string();
+        batch.text(atlas, &mult, ox + 161.0 - mult.len() as f32 * 6.0, oy + 42.0, grey, false);
+        true
+    }
+    /// The drawer slots as `DrawerScreen` draws them: `SlotDrawer.getItem` (compacting: each
+    /// tier), never highlighted (`isHovering` false), with `StorageGuiGraphics`' half-size counts
+    /// (K, M). Drawn over what the menu's own slot loop drew there (the mirror's raw stacks):
+    /// the slot's frame first, which is opaque.
+    pub(super) fn storagedrawers_draw_counts(&self, batch: &mut horizon_client::hud::HudBatch) {
+        let Some((p, block)) = self.sd_open_menu() else {
+            return;
+        };
+        let (ox, oy) = self.inventory_origin(batch);
+        let atlas = &self.gui.atlas;
+        let sprite = atlas.sprites.get(sd_texture(&block)).copied();
+        for i in 0..block.drawers() {
+            let (sx, sy) = sd_storage_xy(&block, i);
+            let (x, y) = (ox + sx, oy + sy);
+            if let Some(rect) = sprite {
+                let mut r = rect;
+                let (du, dv) = ((rect.u1 - rect.u0) / 256.0, (rect.v1 - rect.v0) / 256.0);
+                r.u0 = rect.u0 + 176.0 * du;
+                r.u1 = r.u0 + 16.0 * du;
+                r.v1 = r.v0 + 16.0 * dv;
+                batch.rect_uv(x, y, 16.0, 16.0, r, u32::MAX);
+            }
+            let Some((stack, count)) = self.sd_display(p, &block, i) else {
+                continue;
+            };
+            self.draw_item_model(batch, &ItemStack { count: 1, ..stack }, x, y);
+            let text = sd_count_text(count);
+            let w = horizon_client::hud::HudBatch::text_width(atlas, &text);
+            let tx = ((x + 16.0 - w * 0.5) / 0.5).trunc() - 1.0;
+            let ty = ((y + 16.0 - 7.0 * 0.5) / 0.5).trunc() - 1.0;
+            let color = if count == 0 {
+                horizon_client::hud::rgba(255, 96, 96, 255)
+            } else {
+                horizon_client::hud::rgba(255, 255, 255, 255)
+            };
+            let start = batch.vertices.len();
+            batch.text(atlas, &text, tx, ty, color, true);
+            batch.scale_since(start, 0.0, 0.0, 0.5, 0.5);
+        }
+    }
+
+    // ---- the menu's clicks (server, or the in-frame host) ----
+
+    /// `ContainerDrawers` + `AbstractContainerMenu.doClick` for the drawer's menu. `None`: not a
+    /// drawer's menu here (a client sends its clicks through forja, which comes first).
+    pub(super) fn storagedrawers_menu_ops(
+        &mut self,
+        ops: &[(Option<usize>, i32, horizon_client::menu::Input)],
+    ) -> Option<bool> {
+        use horizon_client::menu::Input;
+        if self.remote.is_some() {
+            return None;
+        }
+        let (p, block) = self.sd_open_menu()?;
+        for &(slot, button, input) in ops {
+            if input == Input::QuickCraft {
+                self.sd_drag(p, &block, slot, button);
+                continue;
+            }
+            self.sd_click(p, &block, slot, button, input);
+        }
+        self.sd_changed(p);
+        Some(true)
+    }
+    fn sd_max_of(&self, s: &ItemStack) -> u32 {
+        self.sd_max_stack(&s.item)
+    }
+    /// One click (not a drag) on the drawer's menu.
+    fn sd_click(
+        &mut self,
+        p: [i32; 3],
+        block: &Block,
+        slot: Option<usize>,
+        button: i32,
+        input: horizon_client::menu::Input,
+    ) {
+        use horizon_client::menu::Input;
+        let n = block.drawers();
+        let Some(slot) = slot else {
+            // Outside the window: the carried stack (or one of it) is thrown.
+            if input == Input::Pickup
+                && let Some(mut c) = self.carried.take()
+            {
+                if button == 1 && c.count > 1 {
+                    let mut one = c.clone();
+                    one.count = 1;
+                    c.count -= 1;
+                    self.carried = Some(c);
+                    self.player_drop(one);
+                } else {
+                    self.player_drop(c);
+                }
+            }
+            return;
+        };
+        match slot {
+            s if (300..300 + n).contains(&s) => self.sd_click_drawer(p, block, s - 300, button, input),
+            s if (300 + n..300 + n + engine::UPGRADE_SLOTS).contains(&s) => {
+                self.sd_click_upgrade(p, block, s - 300 - n, button, input)
+            }
+            s if s < 36 => self.sd_click_inventory(p, block, s, button, input),
+            _ => {}
+        }
+    }
+    /// `SlotDrawer`: it is never picked up from (`mayPickup` false); an empty drawer slot takes up
+    /// to a stack of what it can store (`safeInsert` with `getMaxStackSize` = the item's stack
+    /// size capped by the remaining capacity).
+    fn sd_click_drawer(
+        &mut self,
+        p: [i32; 3],
+        block: &Block,
+        i: usize,
+        button: i32,
+        input: horizon_client::menu::Input,
+    ) {
+        use horizon_client::menu::Input;
+        let shown = self.sd_display(p, block, i).filter(|(_, c)| *c > 0);
+        match input {
+            Input::Pickup if shown.is_none() => {
+                let Some(mut c) = self.carried.take() else {
+                    return;
+                };
+                let want = if button == 0 { c.count } else { 1 }.min(self.sd_max_of(&c));
+                self.sd_insert_menu(p, i, &mut c, want);
+                self.carried = (c.count > 0).then_some(c);
+            }
+            Input::Swap if shown.is_none() => {
+                let from = if button == 40 { None } else { Some(button.clamp(0, 8) as usize) };
+                let taken = match from {
+                    Some(h) => self.inventory[h].take(),
+                    None => self.offhand.take(),
+                };
+                let Some(mut s) = taken else {
+                    return;
+                };
+                let want = s.count.min(self.sd_max_of(&s));
+                self.sd_insert_menu(p, i, &mut s, want);
+                let back = (s.count > 0).then_some(s);
+                match from {
+                    Some(h) => self.inventory[h] = back,
+                    None => self.offhand = back,
+                }
+            }
+            Input::Clone if self.creative && self.carried.is_none() => {
+                if let Some((s, _)) = shown {
+                    let max = self.sd_max_of(&s);
+                    self.carried = Some(ItemStack { count: max, ..s });
+                }
+            }
+            _ => {}
+        }
+    }
+    /// Up to `want` of `stack` into drawer slot `i` (the drawer's rules: lock, capacity, void).
+    fn sd_insert_menu(&mut self, p: [i32; 3], i: usize, stack: &mut ItemStack, want: u32) {
+        let Some(mut d) = self.sd_drawer(p) else {
+            return;
+        };
+        let mut part = stack.clone();
+        part.count = want.min(stack.count);
+        let before = part.count;
+        self.sd_put(p, &mut d, i, &mut part, true);
+        stack.count -= before - part.count;
+        self.sd_store_attrs(p, d.attrs);
+    }
+    /// `SlotUpgrade` with `Slot`'s click rules (stack size 1).
+    fn sd_click_upgrade(
+        &mut self,
+        p: [i32; 3],
+        block: &Block,
+        k: usize,
+        button: i32,
+        input: horizon_client::menu::Input,
+    ) {
+        use horizon_client::menu::Input;
+        let at = block.drawers() + k;
+        let items: Vec<Option<ItemStack>> = match self.sd_items_ref(p) {
+            Some(items) if items.len() > at => items.clone(),
+            _ => return,
+        };
+        let can_take = self.sd_can_take_upgrade(block, &items, k);
+        let in_slot = items[at].clone();
+        let mut set_slot: Option<Option<ItemStack>> = None;
+        match input {
+            Input::Pickup => match (in_slot, self.carried.clone()) {
+                (None, Some(mut c)) => {
+                    if self.sd_can_place_upgrade(block, &items, k, &c) {
+                        set_slot = Some(Some(ItemStack { count: 1, ..c.clone() }));
+                        c.count -= 1;
+                        self.carried = (c.count > 0).then_some(c);
+                    }
+                }
+                (Some(u), None) if can_take => {
+                    set_slot = Some(None);
+                    self.carried = Some(u);
+                }
+                (Some(u), Some(mut c)) if can_take => {
+                    if u.same_item_same_components(&c) {
+                        if c.count < self.sd_max_of(&c) {
+                            c.count += u.count;
+                            set_slot = Some(None);
+                            self.carried = Some(c);
+                        }
+                    } else if c.count <= 1 && self.sd_can_place_upgrade(block, &items, k, &c) {
+                        set_slot = Some(Some(c));
+                        self.carried = Some(u);
+                    }
+                }
+                _ => {}
+            },
+            Input::QuickMove if can_take => {
+                if let Some(mut u) = in_slot {
+                    // moveItemStackTo(inventoryStart, hotbarEnd, reverse): hotbar 8..0, then 35..9.
+                    let order: Vec<usize> = (0..9).rev().chain((9..36).rev()).collect();
+                    self.sd_move_into(&mut u, &order);
+                    set_slot = Some((u.count > 0).then_some(u));
+                }
+            }
+            Input::Swap => {
+                let from = if button == 40 { None } else { Some(button.clamp(0, 8) as usize) };
+                let hot = match from {
+                    Some(h) => self.inventory[h].clone(),
+                    None => self.offhand.clone(),
+                };
+                let mut back = hot.clone();
+                match (hot, in_slot) {
+                    (None, Some(u)) if can_take => {
+                        back = Some(u);
+                        set_slot = Some(None);
+                    }
+                    (Some(mut h), None) if self.sd_can_place_upgrade(block, &items, k, &h) => {
+                        set_slot = Some(Some(ItemStack { count: 1, ..h.clone() }));
+                        h.count -= 1;
+                        back = (h.count > 0).then_some(h);
+                    }
+                    (Some(h), Some(u))
+                        if can_take && h.count == 1 && self.sd_can_place_upgrade(block, &items, k, &h) =>
+                    {
+                        set_slot = Some(Some(h));
+                        back = Some(u);
+                    }
+                    _ => {}
+                }
+                match from {
+                    Some(h) => self.inventory[h] = back,
+                    None => self.offhand = back,
+                }
+            }
+            Input::Throw if can_take && self.carried.is_none() => {
+                if let Some(u) = in_slot {
+                    set_slot = Some(None);
+                    self.player_drop(u);
+                }
+            }
+            Input::Clone if self.creative && self.carried.is_none() => {
+                if let Some(u) = in_slot {
+                    let max = self.sd_max_of(&u);
+                    self.carried = Some(ItemStack { count: max, ..u });
+                }
+            }
+            _ => {}
+        }
+        if let Some(new) = set_slot
+            && let Some(items) = self.sd_items(p)
+        {
+            items[at] = new;
+        }
+    }
+    /// `moveItemStackTo` over inventory slots in `order`: onto stacks of the same item first, then
+    /// into the first empty slot.
+    fn sd_move_into(&mut self, stack: &mut ItemStack, order: &[usize]) {
+        let max = self.sd_max_of(stack);
+        for &i in order {
+            if stack.count == 0 {
+                return;
+            }
+            if let Some(s) = self.inventory[i].as_mut()
+                && s.same_item_same_components(stack)
+                && s.count < max
+            {
+                let moved = (max - s.count).min(stack.count);
+                s.count += moved;
+                stack.count -= moved;
+            }
+        }
+        if stack.count == 0 {
+            return;
+        }
+        if let Some(&i) = order.iter().find(|&&i| self.inventory[i].is_none()) {
+            let moved = stack.count.min(max);
+            self.inventory[i] = Some(ItemStack {
+                count: moved,
+                ..stack.clone()
+            });
+            stack.count -= moved;
+        }
+    }
+    /// A plain inventory slot of the drawer's menu (`Slot` + `ContainerDrawers.quickMoveStack`).
+    fn sd_click_inventory(
+        &mut self,
+        p: [i32; 3],
+        block: &Block,
+        i: usize,
+        button: i32,
+        input: horizon_client::menu::Input,
+    ) {
+        use horizon_client::menu::Input;
+        match input {
+            Input::Pickup => {
+                let slot = self.inventory[i].take();
+                let carried = self.carried.take();
+                let (slot, carried) = match (slot, carried) {
+                    (None, None) => (None, None),
+                    (None, Some(mut c)) => {
+                        let put = if button == 0 { c.count } else { 1 }.min(self.sd_max_of(&c));
+                        let mut s = c.clone();
+                        s.count = put;
+                        c.count -= put;
+                        (Some(s), (c.count > 0).then_some(c))
+                    }
+                    (Some(mut s), None) => {
+                        let take = if button == 0 { s.count } else { s.count.div_ceil(2) };
+                        let mut c = s.clone();
+                        c.count = take;
+                        s.count -= take;
+                        ((s.count > 0).then_some(s), Some(c))
+                    }
+                    (Some(mut s), Some(mut c)) => {
+                        if s.same_item_same_components(&c) {
+                            let max = self.sd_max_of(&s);
+                            let put = if button == 0 { c.count } else { 1 }.min(max.saturating_sub(s.count));
+                            s.count += put;
+                            c.count -= put;
+                            (Some(s), (c.count > 0).then_some(c))
+                        } else if c.count <= self.sd_max_of(&c) {
+                            (Some(c), Some(s))
+                        } else {
+                            (Some(s), Some(c))
+                        }
+                    }
+                };
+                self.inventory[i] = slot;
+                self.carried = carried;
+            }
+            Input::QuickMove => {
+                let Some(mut s) = self.inventory[i].take() else {
+                    return;
+                };
+                // Upgrades go into the upgrade slots one at a time.
+                if Upgrade::parse(&s.item).is_some() {
+                    let items: Vec<Option<ItemStack>> =
+                        self.sd_items_ref(p).cloned().unwrap_or_default();
+                    let n = block.drawers();
+                    if items.len() >= block.chest_size()
+                        && let Some(k) = (0..engine::UPGRADE_SLOTS).find(|&k| {
+                            items[n + k].is_none() && self.sd_can_place_upgrade(block, &items, k, &s)
+                        })
+                    {
+                        if let Some(items) = self.sd_items(p) {
+                            items[n + k] = Some(ItemStack {
+                                count: 1,
+                                ..s.clone()
+                            });
+                        }
+                        s.count -= 1;
+                        self.inventory[i] = (s.count > 0).then_some(s);
+                        return;
+                    }
+                }
+                let order: Vec<usize> = if i < 9 { (9..36).collect() } else { (0..9).collect() };
+                self.sd_move_into(&mut s, &order);
+                self.inventory[i] = (s.count > 0).then_some(s);
+            }
+            Input::Swap => {
+                if button == 40 {
+                    std::mem::swap(&mut self.inventory[i], &mut self.offhand);
+                } else {
+                    let h = button.clamp(0, 8) as usize;
+                    self.inventory.swap(i, h);
+                }
+            }
+            Input::Throw if self.carried.is_none() => {
+                if let Some(mut s) = self.inventory[i].take() {
+                    if button == 0 && s.count > 1 {
+                        let mut one = s.clone();
+                        one.count = 1;
+                        s.count -= 1;
+                        self.inventory[i] = Some(s);
+                        self.player_drop(one);
+                    } else {
+                        self.player_drop(s);
+                    }
+                }
+            }
+            Input::Clone if self.creative && self.carried.is_none() => {
+                if let Some(s) = self.inventory[i].clone() {
+                    let max = self.sd_max_of(&s);
+                    self.carried = Some(ItemStack { count: max, ..s });
+                }
+            }
+            Input::PickupAll => {
+                // PICKUP_ALL (double click): the same item from the inventory, partial stacks
+                // first (the drawer slots are never picked up).
+                let Some(mut c) = self.carried.take() else {
+                    return;
+                };
+                let max = self.sd_max_of(&c);
+                let order: Vec<usize> = (9..36).chain(0..9).collect();
+                for pass in 0..2 {
+                    for &j in &order {
+                        if c.count >= max {
+                            break;
+                        }
+                        let Some(s) = self.inventory[j].as_mut() else {
+                            continue;
+                        };
+                        if !s.same_item_same_components(&c) || (pass == 0 && s.count >= max) {
+                            continue;
+                        }
+                        let moved = (max - c.count).min(s.count);
+                        c.count += moved;
+                        s.count -= moved;
+                        if s.count == 0 {
+                            self.inventory[j] = None;
+                        }
+                    }
+                }
+                self.carried = Some(c);
+            }
+            _ => {}
+        }
+    }
+    /// A drag (`QUICK_CRAFT`): start, slots, end. The inventory slots take the split; the drawer's
+    /// own slots are left out of drags.
+    fn sd_drag(&mut self, p: [i32; 3], block: &Block, slot: Option<usize>, button: i32) {
+        let who = self.lan_acting;
+        let header = button & 3;
+        let kind = ((button >> 2) & 3) as u8;
+        let ended = {
+            let mut drags = DRAG.lock().unwrap_or_else(|e| e.into_inner());
+            match header {
+                0 => {
+                    drags.retain(|d| d.0 != who);
+                    if self.carried.is_some() && kind < 2 {
+                        drags.push((who, kind, Vec::new()));
+                    }
+                    None
+                }
+                1 => {
+                    if let Some(s) = slot.filter(|&s| s < 36)
+                        && let Some(c) = self.carried.as_ref()
+                        && self.inventory[s]
+                            .as_ref()
+                            .is_none_or(|x| x.same_item_same_components(c))
+                        && let Some(d) = drags.iter_mut().find(|d| d.0 == who)
+                        && !d.2.contains(&s)
+                        && (c.count as usize) > d.2.len()
+                    {
+                        d.2.push(s);
+                    }
+                    None
+                }
+                _ => drags
+                    .iter()
+                    .position(|d| d.0 == who)
+                    .map(|at| drags.remove(at)),
+            }
+        };
+        let Some((_, kind, slots)) = ended else {
+            return;
+        };
+        if slots.len() == 1 {
+            // One slot: a plain click with the drag's button.
+            self.sd_click_inventory(p, block, slots[0], i32::from(kind), horizon_client::menu::Input::Pickup);
+            return;
+        }
+        let Some(mut c) = self.carried.take() else {
+            return;
+        };
+        let max = self.sd_max_of(&c);
+        let each = if kind == 0 {
+            c.count / slots.len().max(1) as u32
+        } else {
+            1
+        };
+        for s in slots {
+            if c.count == 0 {
+                break;
+            }
+            let have = self.inventory[s].as_ref().map_or(0, |x| x.count);
+            let add = (have + each).min(max).saturating_sub(have).min(c.count);
+            if add == 0 {
+                continue;
+            }
+            self.inventory[s] = Some(ItemStack {
+                count: have + add,
+                ..c.clone()
+            });
+            c.count -= add;
+        }
+        self.carried = (c.count > 0).then_some(c);
+    }
 }

@@ -24,17 +24,17 @@ pub type Pos = [i32; 3];
 /// The values of the pack's `config/netherending-common.toml` (all defaults of the mod).
 #[allow(dead_code)]
 pub mod config {
-    /// Sansa ca endermanii din jur sa se supere cand spargi un minereu din End (0..1) Range: 0.0 ~ 1.0
+    /// Chance that nearby endermen get angry when you break an End ore (0..1) Range: 0.0 ~ 1.0
     pub const END_ENDERMAN_ANGER_CHANCE: f64 = 0.35; // netherending-common.toml:5 [end] endermanAngerChance
-    /// Raza in care endermanii aud minereul spart Range: 0 ~ 64
+    /// Radius in which endermen hear the broken ore Range: 0 ~ 64
     pub const END_ENDERMAN_RANGE: i32 = 16; // netherending-common.toml:8 [end] endermanRange
-    /// Sansa sa iasa un endermite din minereu Range: 0.0 ~ 1.0
+    /// Chance that an endermite comes out of the ore Range: 0.0 ~ 1.0
     pub const END_ENDERMITE_CHANCE: f64 = 0.05; // netherending-common.toml:11 [end] endermiteChance
-    /// Raza in care piglinii zombi se infurie cand spargi un minereu din Nether (0 = oprit) Range: 0 ~ 64
+    /// Radius in which zombified piglins get angry when you break a Nether ore (0 = off) Range: 0 ~ 64
     pub const NETHER_PIGMEN_RANGE: i32 = 24; // netherending-common.toml:16 [nether] pigmenRange
-    /// Sansa ca un minereu din Nether sa explodeze dupa ce e spart (fara Silk Touch) Range: 0.0 ~ 1.0
+    /// Chance that a Nether ore explodes after it is broken (without Silk Touch) Range: 0.0 ~ 1.0
     pub const NETHER_EXPLODE_CHANCE: f64 = 0.03; // netherending-common.toml:19 [nether] explodeChance
-    /// Puterea exploziei (TNT = 4) Range: 0.0 ~ 6.0
+    /// The explosion's power (TNT = 4) Range: 0.0 ~ 6.0
     pub const NETHER_EXPLODE_POWER: f64 = 2.0; // netherending-common.toml:22 [nether] explodePower
 }
 

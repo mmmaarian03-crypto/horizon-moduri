@@ -28,7 +28,7 @@ pub mod config {
     // ---- config/curios-common.toml
     /// slots (curios-common.toml:4): the pack's list is empty.
     pub const SLOTS: &[&str] = &[];
-    // ---- saves/Prima lume/serverconfig/curios-server.toml
+    // ---- saves/<world>/serverconfig/curios-server.toml
     /// keepCurios (curios-server.toml:6): ON / DEFAULT / OFF.
     pub const KEEP_CURIOS: &str = "DEFAULT";
     /// menu.enableLegacyMenu (curios-server.toml:11): false = CuriosContainerV2 / CuriosScreenV2.

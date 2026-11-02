@@ -186,7 +186,7 @@ impl Tool {
 }
 
 /// The options of the pack: `config/advancednetherite-common.toml` and, for the
-/// server options, the world "Prima lume"'s `serverconfig/advancednetherite-server.toml`.
+/// server options, the pack's world's `serverconfig/advancednetherite-server.toml`.
 /// Both hold the mod's defaults, so these are the defaults of 2.1.3's `Config`.
 #[derive(Clone, Debug)]
 pub struct Settings {

@@ -2,7 +2,7 @@
 // - the chunk mesher (worker threads) draws the parts of compound blocks (multipart hosts) at
 //   their host's cell with the parts' own block models and the game's lighting and culling;
 // - the collision scan (`SceneCollisions::context_shape`) gets a host's union of part boxes and
-//   the model shapes of content-mod blocks ("forme din model");
+//   the model shapes of content-mod blocks (shapes from models);
 // - the outline renderer (`gfx::outline_vertices`) draws the targeted part's boxes, or the model
 //   boxes of a content-mod block, instead of the template's.
 // The game (forja's runtime, `crate::game::forja`) writes these tables; they are read-mostly.
@@ -132,7 +132,7 @@ pub fn host_outline(state: u32, pos: [i32; 3]) -> Option<Vec<(SlotCode, [f64; 6]
     })
     .flatten()
 }
-/// The model outline of a content-mod block state ("forme din model").
+/// The model outline of a content-mod block state (shapes from models).
 pub fn model_outline(state: u32) -> Option<Vec<[f64; 6]>> {
     read(|t| t.models.get(state as usize).and_then(|m| m.as_ref()).map(|m| m.0.clone())).flatten()
 }

@@ -1,8 +1,8 @@
 // Enchanting Infuser inside Horizon's game (nightly 142388e1c). The rules are the engine below (src/lib.rs).
 //
 // The two infusers are carried blocks with the template `minecraft:enchanting_table` (its shape, light 7,
-// floating book). Their one slot is Horizon's own `BlockEntity::Chest(vec![None; 1])` (ironchest's
-// FUNDATIE.md): saved with the chunk, spilled on break, seen by hoppers (only an empty slot takes an
+// floating book). Their one slot is Horizon's own `BlockEntity::Chest(vec![None; 1])` (the ironchest
+// pattern): saved with the chunk, spilled on break, seen by hoppers (only an empty slot takes an
 // item, only an enchanted item comes out, as `InfuserBlockEntity`). The menu (`InfuserMenu` +
 // `InfuserScreen`): the game's chest menu engine over the one slot (like the dirt chest of Iron Chests,
 // one item at most), the list of enchantments, the enchant and repair buttons and the enchanting power
@@ -1193,7 +1193,7 @@ mod kit_sound {
 
 const MENU_KIND: &str = "enchantinginfuser:infuser";
 /// The screen texture in the GUI atlas (`textures/gui/container/enchanting_infuser.png`, carried under
-/// `textures/block/` so the GUI atlas packs it: FUNDATIE.md section 3).
+/// `textures/block/` so the GUI atlas packs it: as ironchest does).
 const TEXTURE: &str = "enchantinginfuser:block/gui_enchanting_infuser";
 /// The session key of a host playing in the frame (guests: their connection).
 const HOST: u32 = u32::MAX;

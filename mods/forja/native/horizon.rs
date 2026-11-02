@@ -2,7 +2,7 @@
 // This module lives in `game::machines` (see the [[module]] in horizon-mixin.toml) so its item
 // handler can use the hopper machinery's container views; `crate::game::forja` (alias.rs) re-exports
 // it. Every mod compiled into the same game binary calls it as `crate::game::forja::...` (see
-// FUNDATIE-FORJA.md). The rules are the engine below (src/lib.rs).
+// mods/forja/API.md). The rules are the engine below (src/lib.rs).
 //
 // What lives here:
 // - the registries: machine specs (side-table energy/tanks/slots + a tick), other mods' energy,
@@ -812,7 +812,7 @@ pub(in crate::game) struct HostSpec {
     pub place_sound: &'static str,
     /// The twin block the host becomes while one of its parts emits redstone (`set_part_redstone`):
     /// the same block declared with template `minecraft:trapped_chest`, the only kind of state whose
-    /// signal Horizon asks per position (FUNDATIE-FORJA.md, "Redstone"). `None`: the host never emits.
+    /// signal Horizon asks per position (mods/forja/API.md section 11, "Redstone"). `None`: the host never emits.
     pub signal_block: Option<&'static str>,
 }
 /// Does the centre part `part` of the host at `pos` link towards `side`? `neighbour` = the centre
@@ -1480,8 +1480,8 @@ impl Game<'_> {
         }
     }
 
-    /// "Forme din model": once per registry and model catalog, the content-mod block states whose
-    /// model is not their template's shape get their model's boxes (FUNDATIE-FORJA.md §8).
+    /// Shapes from models: once per registry and model catalog, the content-mod block states whose
+    /// model is not their template's shape get their model's boxes (mods/forja/API.md section 9).
     fn forja_model_shapes(&mut self) {
         let len = self.pack.assets.registry.len();
         let catalog = &self.pack.render.model_catalog;
@@ -1561,7 +1561,7 @@ impl Game<'_> {
 }
 
 // =================================================================================================
-// ---- mod networking ("Rețea mod"): a typed channel between a mod's server half and its client
+// ---- mod networking: a typed channel between a mod's server half and its client
 // half over Horizon's own connection, and the forja menu built on it ----
 //
 // Single player is an integrated server: the window joins it as a protocol client (a guest), as LAN

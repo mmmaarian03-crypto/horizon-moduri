@@ -10,10 +10,26 @@ fn stamp(c: &Counters, mods: &[usize]) {
 }
 
 #[test]
+fn the_texts_are_english_unless_romanian_is_chosen() {
+    assert!(!ROMANIAN, "English is the default");
+    let c = Counters::new();
+    assert_eq!(c.snapshot().line_in(true), "Se pornește Horizon...");
+    stamp(&c, &[10, 20, 30]);
+    let s = c.snapshot();
+    assert_eq!(s.line_in(false), "Preparing mods (3)...");
+    assert_eq!(s.line_in(true), "Se pregătesc modurile (3)...");
+    assert_eq!(s.note_in(false), Some("Do not close the game: the first start takes longer"));
+    assert_eq!(s.note_in(true), Some("Nu închide jocul: prima pornire durează mai mult"));
+    c.tables_known(4, 1000);
+    c.table_written(750);
+    assert_eq!(c.snapshot().line_in(true), "Se pregătesc modurile: tabele 1/4");
+}
+
+#[test]
 fn nothing_known_is_indeterminate_with_a_plain_line() {
     let c = Counters::new();
     assert_eq!(c.fraction(), None);
-    assert_eq!(c.snapshot().line(), "Se pornește Horizon...");
+    assert_eq!(c.snapshot().line(), "Starting Horizon...");
     assert_eq!(c.snapshot().note(), None);
 }
 
@@ -24,7 +40,7 @@ fn stamp_alone_names_the_mod_count_but_stays_indeterminate() {
     let s = c.snapshot();
     assert_eq!((s.mods_total, s.files_total), (3, 60));
     assert_eq!(c.fraction(), None);
-    assert_eq!(s.line(), "Se pregătesc modurile (3)...");
+    assert_eq!(s.line(), "Preparing mods (3)...");
     assert!(s.note().is_some());
 }
 
@@ -35,7 +51,7 @@ fn tables_fill_the_first_half_by_bytes() {
     c.tables_known(4, 1000);
     c.table_written(750);
     let s = c.snapshot();
-    assert_eq!(s.line(), "Se pregătesc modurile: tabele 1/4");
+    assert_eq!(s.line(), "Preparing mods: tables 1/4");
     let f = c.fraction().unwrap();
     assert!((f - 0.375).abs() < 0.002, "{f}");
     c.table_written(250);
@@ -55,14 +71,14 @@ fn mods_fill_the_second_half_by_files() {
     // First mod just started: half of its 10 files out of 100.
     c.reader_started(10);
     let s = c.snapshot();
-    assert!(s.line().starts_with("Se pregătesc modurile: 1/3 (5"), "{}", s.line());
+    assert!(s.line().starts_with("Preparing mods: 1/3 (5"), "{}", s.line());
     let f = c.fraction().unwrap();
     assert!((f - (0.5 + 0.5 * 0.05)).abs() < 0.002, "{f}");
     // Second mod: the first is done (10) and half of 30.
     c.reader_started(30);
     let f = c.fraction().unwrap();
     assert!((f - (0.5 + 0.5 * 0.25)).abs() < 0.002, "{f}");
-    assert!(c.snapshot().line().starts_with("Se pregătesc modurile: 2/3 (6"));
+    assert!(c.snapshot().line().starts_with("Preparing mods: 2/3 (6"));
 }
 
 #[test]
@@ -109,7 +125,7 @@ fn more_started_than_stamped_is_clamped() {
     c.reader_started(2);
     c.reader_started(2);
     let s = c.snapshot();
-    assert!(s.line().starts_with("Se pregătesc modurile: 2/2 ("));
+    assert!(s.line().starts_with("Preparing mods: 2/2 ("));
     assert!(c.fraction().unwrap() <= CEILING);
 }
 
@@ -148,5 +164,5 @@ fn snapshot_fraction_is_within_bounds_for_odd_inputs() {
     };
     let f = s.fraction().unwrap();
     assert!((0.0..=CEILING).contains(&f));
-    assert!(s.line().starts_with("Se pregătesc modurile: 1/1"));
+    assert!(s.line().starts_with("Preparing mods: 1/1"));
 }

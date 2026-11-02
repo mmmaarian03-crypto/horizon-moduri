@@ -5,17 +5,17 @@ fn view<'a>(line: &'a str, note: Option<&'a str>, fraction: Option<f32>) -> View
     View { line, note, fraction, memory: None }
 }
 
-const NOTE: &str = "Nu închide jocul: prima pornire durează mai mult";
-const LINE: &str = "Se pregătesc modurile: 23/60 (41%)";
+const NOTE: &str = "Do not close the game: the first start takes longer";
+const LINE: &str = "Preparing mods: 23/60 (41%)";
 
 #[test]
 fn every_glyph_is_five_wide_and_the_alphabet_is_complete() {
     for c in ('A'..='Z').chain('0'..='9').chain(": /%.,-()".chars()) {
-        assert!(glyph(c).is_some(), "lipseste {c:?}");
+        assert!(glyph(c).is_some(), "missing {c:?}");
     }
     for c in ('A'..='Z').chain('0'..='9') {
         assert!(glyph(c).unwrap().iter().all(|r| r & 0xe0 == 0), "{c}");
-        assert!(glyph(c).unwrap().iter().any(|r| *r != 0), "{c} gol");
+        assert!(glyph(c).unwrap().iter().any(|r| *r != 0), "{c} empty");
     }
 }
 
@@ -23,10 +23,18 @@ fn every_glyph_is_five_wide_and_the_alphabet_is_complete() {
 fn every_character_of_the_texts_can_be_drawn() {
     let texts = [
         LINE,
+        NOTE,
+        "Preparing mods: tables 7/20",
+        "Preparing mods (60)...",
+        "Starting Horizon...",
+        "RAM: 1.4 GB OF 31.8 GB",
+        // The Romanian texts (ROMANIAN = true): the font draws their accented letters.
+        "Se pregătesc modurile: 23/60 (41%)",
         "Se pregătesc modurile: tabele 7/20",
         "Se pregătesc modurile (60)...",
         "Se pornește Horizon...",
-        NOTE,
+        "Nu închide jocul: prima pornire durează mai mult",
+        "RAM: 1,4 GB DIN 31,8 GB",
     ];
     for t in texts {
         for c in t.chars() {
@@ -166,7 +174,7 @@ fn bar_indeterminate_ping_pongs_inside() {
 #[test]
 fn scene_draws_page_first_and_stays_in_the_screen() {
     for (w, h) in [(427.0f32, 240.0f32), (960.0, 540.0), (1920.0, 1080.0)] {
-        let s = scene(w, h, 3.1, &view(LINE, Some("Nu închide jocul"), Some(0.4)));
+        let s = scene(w, h, 3.1, &view(LINE, Some("Do not close the game"), Some(0.4)));
         assert_eq!(s[0], Fill { x: 0.0, y: 0.0, w, h, color: config::PAGE });
         for f in &s {
             assert!(f.w > 0.0 && f.h > 0.0);
@@ -188,7 +196,7 @@ fn logo_runs_are_inside_the_grid() {
 
 #[test]
 fn without_a_note_nothing_is_drawn_below_the_line() {
-    let line = "Se pornește Horizon...";
+    let line = "Starting Horizon...";
     let a = scene(960.0, 540.0, 0.0, &view(line, None, None));
     let l = layout(960, 540, line, None);
     let lowest = a.iter().skip(1).map(|f| f.y + f.h).fold(0.0, f32::max);
@@ -196,11 +204,12 @@ fn without_a_note_nothing_is_drawn_below_the_line() {
 }
 
 #[test]
-fn memory_text_is_romanian_decimal_comma() {
+fn memory_text_has_one_decimal_in_either_language() {
     const G: u64 = 1 << 30;
-    assert_eq!(format_memory(G * 14 / 10, G * 318 / 10).unwrap(), "RAM: 1,4 GB DIN 31,8 GB");
-    assert_eq!(format_memory(0, 16 * G).unwrap(), "RAM: 0,0 GB DIN 16,0 GB");
-    assert_eq!(format_memory(G / 2, 8 * G).unwrap(), "RAM: 0,5 GB DIN 8,0 GB");
+    assert_eq!(format_memory(G * 14 / 10, G * 318 / 10).unwrap(), "RAM: 1.4 GB OF 31.8 GB");
+    assert_eq!(format_memory(0, 16 * G).unwrap(), "RAM: 0.0 GB OF 16.0 GB");
+    assert_eq!(format_memory(G / 2, 8 * G).unwrap(), "RAM: 0.5 GB OF 8.0 GB");
+    assert_eq!(format_memory_in(G * 14 / 10, G * 318 / 10, true).unwrap(), "RAM: 1,4 GB DIN 31,8 GB");
     assert_eq!(format_memory(1, 0), None);
     let t = format_memory(123456789, 34359738368).unwrap();
     assert!(t.chars().all(|c| glyph(c).is_some() || c == ' '), "{t}");
@@ -223,7 +232,7 @@ fn memory_is_queried_about_twice_a_second() {
 fn memory_line_is_drawn_below_and_only_when_given() {
     let mut v = view(LINE, Some(NOTE), Some(0.4));
     let without = scene(800.0, 450.0, 1.0, &v).len();
-    v.memory = Some("RAM: 1,4 GB DIN 31,8 GB");
+    v.memory = Some("RAM: 1.4 GB OF 31.8 GB");
     assert!(scene(800.0, 450.0, 1.0, &v).len() > without);
     let l = layout_with(800, 450, LINE, Some(NOTE), v.memory);
     assert!(l.memory.1 > l.note.1 && l.memory.0 >= 0);

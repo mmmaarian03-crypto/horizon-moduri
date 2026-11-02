@@ -178,7 +178,7 @@ bindings = [
   { name = "pos", ty = "[i32; 3]", value = "pos" },
 ]
 
-# ---- mod networking ("Rețea mod") and forja menus for guests ----
+# ---- mod networking and forja menus for guests ----
 
 # The library's queues of forja's frames (the hub's inboxes, the client's received events).
 [[module]]

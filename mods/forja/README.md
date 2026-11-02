@@ -6,7 +6,7 @@ A shared foundation for the other native mods: machines and block entities kept 
 
 ## Notes
 
-- Not a port: there is no original. Other native mods of this repository call it as `crate::game::forja`.
+- Not a port: there is no original. Other native mods of this repository call it as `crate::game::forja`: its API is in `API.md`.
 - Blocks with several parts: rotated model elements (22.5/45 degrees) are kept unrotated, and models larger than the block are clipped to it.
 - Strong redstone signal only towards the block below; no facades, no Mekanism gases or AE2 networks (those mods add their own).
 

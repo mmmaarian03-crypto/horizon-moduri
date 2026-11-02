@@ -193,7 +193,7 @@ pub const PARTICLES: [Particle; 8] = [
 
 /// The jetpack's NBT (`Engine`, `Hover`, `EmergencyHover`, `Charger`, `Energy`, `Throttle`, `ParticleID`, the potato's
 /// `Fired`, `RocketTimerSet`, `RocketTimer`). Here they live in `minecraft:custom_data`, energy as `forja:energy`
-/// (FUNDATIE-FORJA section 6).
+/// (mods/forja/API.md section 6).
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct Pack {
     pub engine: bool,

@@ -15,8 +15,8 @@ mod engine {
 
 pub type Pos = [i32; 3];
 
-/// Niciun fișier de config pentru acest mod în profilul pachetului (`morebows_bowstats.json` și
-/// `morebows_general.json` lipsesc): valorile sunt cele implicite din `ConfigBows` / `ConfigGeneral`.
+/// The pack has no config file for this mod (`morebows_bowstats.json` and
+/// `morebows_general.json` are missing): the values are the defaults of `ConfigBows` / `ConfigGeneral`.
 pub mod config {
     /// `ConfigGeneral.frostArrowsShouldBeCold`.
     pub const FROST_ARROWS_SHOULD_BE_COLD: bool = true;

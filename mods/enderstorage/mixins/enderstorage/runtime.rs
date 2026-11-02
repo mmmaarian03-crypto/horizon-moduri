@@ -5,7 +5,7 @@
 // world folder) is `Store`, written to `data/enderstorage/store.nbt` beside the saves. Each Ender
 // Chest block also has Horizon's own `BlockEntity::Chest(Vec<..>)` as a working copy of its
 // frequency's inventory, so hoppers, comparators and the vanilla chest menu work on it
-// (see ironchest/FUNDATIE.md); `enderstorage_tick` keeps every copy and the inventory equal
+// (the ironchest pattern); `enderstorage_tick` keeps every copy and the inventory equal
 // (`reconcile`). The Ender Pouch opens its frequency's inventory on a placeholder container under a
 // vehicle-style key, as a chest minecart does. The Ender Tank has no block entity: its tank is in
 // `Store`. Through forja (`crate::game::forja`, a native mod that must be enabled with this one) the

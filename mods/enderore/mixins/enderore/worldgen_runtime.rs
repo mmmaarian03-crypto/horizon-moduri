@@ -21,7 +21,7 @@ mod engine {
 // `horizon_world::worldgen::generator::enderore::engine` (the ores in the biomes); it is also the
 // `horizon_enderore` crate the tests use: std + serde_json, no game types, no inner attributes.
 
-/// Niciun fișier de config pentru acest mod în profilul pachetului.
+/// The pack has no config file for this mod.
 pub mod config {}
 
 pub const MOD: &str = "enderore";

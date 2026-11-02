@@ -5,8 +5,8 @@
 // `horizon_carryon` crate the tests use: plain Rust, no game types, no inner attributes (`#![...]`).
 pub type Pos = [i32; 3];
 
-/// Valorile pachetului (profilul the 1.20.1 pack/config), generate de tools/nou_mod.py.
-/// Păstrează doar ce folosește portul; scrie sursa fiecărei valori folosite.
+/// The pack's values (its 1.20.1 config folder), written out by a generator script.
+/// Keeps only what the port uses, with the source of each value.
 #[allow(dead_code)]
 pub mod config {
     // ---- carryon-client.toml
@@ -58,7 +58,7 @@ pub mod config {
     /// Whether entities' size matters when stacking or not. This means that larger entities cannot be stacked on smaller ones
     pub const SETTINGS_ENTITY_SIZE_MATTERS_STACKING: bool = true; // carryon-common.toml:49 [settings] entitySizeMattersStacking
     /// Usually all the block state information is retained when placing a block that was picked up. But some information is changed to a modified property, like rotation or orientation. I
-    // SETTINGS_PLACEMENT_STATE_EXCEPTIONS = ["minecraft:chest[type]", "minecraft:stone_button[face]", "minecraft:vine[north,east,south,west,up]", "minecraft:creeper  (carryon-common.toml:51 [settings] placementStateExceptions: valoare complexă, de tradus de mână)
+    // SETTINGS_PLACEMENT_STATE_EXCEPTIONS = ["minecraft:chest[type]", "minecraft:stone_button[face]", "minecraft:vine[north,east,south,west,up]", "minecraft:creeper  (carryon-common.toml:51 [settings] placementStateExceptions: a complex value, translated by hand)
     /// Whether Players can be picked up. Creative players can't be picked up in Survival Mode
     pub const SETTINGS_PICKUP_PLAYERS: bool = true; // carryon-common.toml:53 [settings] pickupPlayers
     /// Whether players in Survival Mode can pick up unbreakable blocks. Creative players always can.

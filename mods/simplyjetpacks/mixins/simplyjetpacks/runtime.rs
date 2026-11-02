@@ -206,7 +206,7 @@ pub const PARTICLES: [Particle; 8] = [
 
 /// The jetpack's NBT (`Engine`, `Hover`, `EmergencyHover`, `Charger`, `Energy`, `Throttle`, `ParticleID`, the potato's
 /// `Fired`, `RocketTimerSet`, `RocketTimer`). Here they live in `minecraft:custom_data`, energy as `forja:energy`
-/// (FUNDATIE-FORJA section 6).
+/// (mods/forja/API.md section 6).
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct Pack {
     pub engine: bool,
@@ -660,7 +660,7 @@ fn key_from_client(game: &mut Game<'_>, host: &mut LanHost, conn: u32, body: &[u
     game.as_guest(host, conn, |g| g.simplyjetpacks_act(action));
 }
 
-// ---- the jetpack's NBT in custom_data (energy = forja:energy, FUNDATIE-FORJA section 6)
+// ---- the jetpack's NBT in custom_data (energy = forja:energy, mods/forja/API.md section 6)
 
 fn custom(s: &ItemStack) -> Option<&Tag> {
     s.data().and_then(|d| d.other("minecraft:custom_data"))

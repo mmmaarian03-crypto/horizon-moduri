@@ -1,6 +1,6 @@
 // An explosion: the undestroyable items go through it as nether stars (the only item its code spares), then get
 // their own stacks back. RETURN is refused here (closures in the body), so the HEAD runs the explosion itself once
-// with a re-entry flag ("RETURN from a HEAD", TRADUCATOR 2.12) and skips the original.
+// with a re-entry flag ("RETURN from a HEAD") and skips the original.
 fn itemphysic_explode(
     game: &mut crate::game::Game<'_>,
     center: [f64; 3],

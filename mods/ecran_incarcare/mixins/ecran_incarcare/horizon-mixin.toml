@@ -6,14 +6,14 @@ priority = 100
 [compatibility]
 horizon_revision = "142388e1c136e622652ec7505af15d8ad195e041"
 
-# Desenul ecranului (layout, text, logo) si adaptorul `Loading::ecran_incarcare_draw`.
+# The screen's drawing (layout, text, logo) and the adapter `Loading::ecran_incarcare_draw`.
 [[module]]
 id = "runtime"
 file = "crates/horizon-client/src/game.rs"
 name = "ecran_incarcare"
 source = "runtime.rs"
 
-# Contoarele constructiei de continut, citite de ecran: horizon_mods::ecran_incarcare (shared.rs).
+# The content build's counters, read by the screen: horizon_mods::ecran_incarcare (shared.rs).
 [[module]]
 id = "shared"
 file = "crates/horizon-mods/src/content.rs"
@@ -21,8 +21,8 @@ name = "ecran_incarcare"
 source = "shared.rs"
 visibility = "pub"
 
-# Ecranul de incarcare: cat timp pachetul de interfata (atlasul) nu exista, jocul desena doar negru.
-# HEAD cancellable: cu atlas (gui) pornit, nu se atinge nimic si merge desenul vanilla.
+# The loading screen: while the UI bundle (the atlas) does not exist, the game drew only black.
+# HEAD cancellable: once the atlas (gui) exists, nothing is touched and the vanilla drawing runs.
 [[injection]]
 id = "draw"
 kind = "HEAD"
@@ -34,7 +34,7 @@ bindings = [
   { name = "batch", ty = "&mut horizon_client::hud::HudBatch", value = "&mut *batch" },
 ]
 
-# `stamp` trece o data pe fiecare mod cu continut, inainte de constructie: totalul modurilor si al fisierelor.
+# `stamp` passes once over every content mod, before the build: the totals of mods and files.
 [[injection]]
 id = "source"
 kind = "HEAD"
@@ -42,7 +42,7 @@ target = "horizon_mods::content::Content::source"
 helper = "source.rs"
 bindings = [{ name = "this", ty = "&Content", value = "self" }]
 
-# `build` citeste modurile pe rand: cel de acum si cate au inceput.
+# `build` reads the mods one by one: the current one and how many have started.
 [[injection]]
 id = "reader"
 kind = "HEAD"
@@ -50,7 +50,7 @@ target = "horizon_mods::content::Content::reader"
 helper = "reader.rs"
 bindings = [{ name = "this", ty = "&Content", value = "self" }]
 
-# Fiecare tabel al jocului rescris (pe fire paralele): progresul primei jumatati.
+# Every game table rewritten (on parallel threads): the progress of the first half.
 [[injection]]
 id = "write"
 kind = "HEAD"

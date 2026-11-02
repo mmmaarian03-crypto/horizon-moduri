@@ -2,7 +2,7 @@
 // this part is the game's side: the chests' items are Horizon's own
 // `BlockEntity::Chest(Vec<..>)` of each tier's size (54, 81, 108, 45, 1 slots), kept in
 // `world.block_entities`, so the vanilla code for hoppers, comparators, saving, LAN
-// containers and spills works on them. FUNDATIE.md explains the pattern for later mods.
+// containers and spills works on them. Later mods follow the same pattern.
 //
 // The hooks (mixins/ironchest/horizon-mixin.toml) call the `ironchest_*` methods here;
 // the game library's hooks use `horizon_client::ironchest` (mixins/ironchest/shared.rs).
@@ -857,7 +857,7 @@ pub(crate) fn ironchest_is_chest(name: &str) -> bool {
     engine::size_of(name).is_some()
 }
 
-/// The chests' forja menu (FUNDATIE-FORJA.md, "Rețea mod"): the chest's block-entity slots are
+/// The chests' forja menu (mods/forja/API.md section 10, mod networking): the chest's block-entity slots are
 /// mirrored to the guest, its lid counts the guest among its openers, and every click runs this
 /// mod's own menu code on the server (`ironchest_menu_ops`, through the game's `menu_ops`).
 const MENU_KIND: &str = "ironchest:chest";

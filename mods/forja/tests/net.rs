@@ -1,4 +1,4 @@
-// Mod networking ("Rețea mod"): the frames of the `forja:net` channel and the typed messages.
+// Mod networking: the frames of the `forja:net` channel and the typed messages.
 // Every frame comes from another machine: nothing it holds may panic or half-apply a message.
 use horizon_forja::*;
 

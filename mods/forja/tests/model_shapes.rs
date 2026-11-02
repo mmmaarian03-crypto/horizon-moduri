@@ -1,4 +1,4 @@
-// "Forme din model": block states of content mods take their model's boxes as outline (and
+// Shapes from models: block states of content mods take their model's boxes as outline (and
 // collision) when the template's shape is not their model. Real models of the carried mods
 // (Create's seat, Macaw's Lights' ceiling fan and wall lantern, a Chipped cube) are read from
 // content/mods/<id>/carry with a small JSON reader; the game does the same with its resolved models.

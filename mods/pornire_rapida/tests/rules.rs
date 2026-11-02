@@ -38,7 +38,7 @@ fn make_base(base: &Path) -> usize {
     put("horizon-resources.json", b"{\"version\":\"26.3\"}".to_vec());
     put("items.json", b"{\"minecraft:stone\":{}}".to_vec());
     put("empty.log", Vec::new());
-    put("assets/minecraft/lang/en_us.json", "{\"a\":\"ă î ș\"}".as_bytes().to_vec());
+    put("assets/minecraft/lang/en_us.json", "{\"a\":\"é ü ñ\"}".as_bytes().to_vec());
     put("assets/minecraft/textures/block/stone.png", (0..=255u8).cycle().take(300_000).collect());
     put("assets/minecraft/models/block/stone.json", b"{}".to_vec());
     put("data/minecraft/tags/block/logs.json", b"{\"values\":[]}".to_vec());

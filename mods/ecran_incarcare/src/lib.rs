@@ -33,7 +33,7 @@ pub struct View<'a> {
     pub note: Option<&'a str>,
     /// `None`: no measurement yet, the bar animates.
     pub fraction: Option<f32>,
-    /// Memory line (`RAM: 1,4 GB DIN 31,8 GB`); `None` = not available, nothing is drawn.
+    /// Memory line (`RAM: 1.4 GB OF 31.8 GB`); `None` = not available, nothing is drawn.
     pub memory: Option<&'a str>,
 }
 
@@ -41,16 +41,27 @@ pub struct View<'a> {
 
 const GIB: u64 = 1 << 30;
 
-/// `RAM: 1,4 GB DIN 31,8 GB` (GB = 2^30 bytes, one decimal, Romanian comma). `None` when the total is 0.
+/// The screen's texts are English; `true` gives the Romanian ones (set it here and in
+/// `mixins/ecran_incarcare/shared.rs`). The font draws Romanian's accented letters too.
+pub const ROMANIAN: bool = false;
+
+/// `RAM: 1.4 GB OF 31.8 GB` (GB = 2^30 bytes, one decimal); with [`ROMANIAN`], `RAM: 1,4 GB DIN 31,8 GB`.
+/// `None` when the total is 0.
 pub fn format_memory(used: u64, total: u64) -> Option<String> {
+    format_memory_in(used, total, ROMANIAN)
+}
+
+/// [`format_memory`] in English, or in Romanian (decimal comma) when `romanian` is set.
+pub fn format_memory_in(used: u64, total: u64, romanian: bool) -> Option<String> {
     if total == 0 {
         return None;
     }
+    let (point, of) = if romanian { (',', "DIN") } else { ('.', "OF") };
     let gb = |b: u64| {
         let tenths = ((b as u128 * 10 + GIB as u128 / 2) / GIB as u128) as u64;
-        format!("{},{}", tenths / 10, tenths % 10)
+        format!("{}{point}{}", tenths / 10, tenths % 10)
     };
-    Some(format!("RAM: {} GB DIN {} GB", gb(used), gb(total)))
+    Some(format!("RAM: {} GB {of} {} GB", gb(used), gb(total)))
 }
 
 /// Seconds between two memory queries.

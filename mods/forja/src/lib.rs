@@ -340,7 +340,7 @@ pub fn push_energy(from: &mut dyn EnergyHandler, to: &mut dyn EnergyHandler, max
 pub const BUCKET_VOLUME: i32 = 1000;
 
 /// `FluidStack` (fluid id + mB). The NBT tag of a FluidStack is not modelled (no 1.20.1 fluid
-/// that the pack's mods move by pipe relies on it; see FUNDATIE-FORJA.md).
+/// that the pack's mods move by pipe relies on it; see mods/forja/API.md).
 #[derive(Clone, Debug, PartialEq, Eq, Default)]
 pub struct FluidStack {
     pub fluid: String,
@@ -2214,7 +2214,7 @@ pub fn encode_hosts(hosts: &BTreeMap<Pos, Host>) -> String {
     out
 }
 
-// ---- shapes from models ("forme din model"): a content-mod block whose model is not the shape
+// ---- shapes from models (shapes from models): a content-mod block whose model is not the shape
 // of its vanilla template gets its model's boxes as outline (and collision), like a Java mod
 // whose VoxelShape follows its model ----
 
@@ -2340,7 +2340,7 @@ pub struct ModelShape {
     pub collide: bool,
 }
 
-/// The rule of "forme din model" for one block state. `None` = the template's shapes stay:
+/// The rule of shapes from models for one block state. `None` = the template's shapes stay:
 /// vanilla blocks, models without elements (`builtin/entity`: `model` empty), models that are the
 /// template's outline anyway, templates whose shape is behaviour (`KEEP_TEMPLATE_CLASSES`). The
 /// collision follows the model only when the template's collision is its plain outline (not empty
@@ -2365,7 +2365,7 @@ pub fn model_shape_rule(
     Some(ModelShape { outline: model.to_vec(), collide })
 }
 
-// ---- mod networking ("Rețea mod"): a typed channel between a mod's server half and its client
+// ---- mod networking: a typed channel between a mod's server half and its client
 // half, over Horizon's own connection (custom payload packets on `forja:net`, as vanilla's
 // `ServerboundCustomPayloadPacket` / `ClientboundCustomPayloadPacket`; a vanilla client or server
 // ignores an unknown channel). The frames and the message codec are here; the game side sends and

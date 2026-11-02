@@ -2,11 +2,12 @@
 
 A native mod for [Horizon](https://github.com/horizon-rust/horizon) (Minecraft: Java Edition 26.3 rewritten in Rust).
 
-A loading screen while Horizon prepares the content of many mods: the Horizon logo, a progress bar and the name of the mod being loaded.
+A loading screen while Horizon prepares the content of many mods (instead of a black window): the Horizon logo, a progress bar with how many mods are ready, and the memory in use.
 
 ## Notes
 
 - Not a port: there is no original.
+- The texts are English. For Romanian ones, set `ROMANIAN` to `true` in `src/lib.rs` and in `mixins/ecran_incarcare/shared.rs` (the font draws Romanian's accented letters).
 - The logo is a 48x48 reduction of Horizon's own icon (`packaging/icons`, MIT, Ludovic Marie and the Horizon contributors).
 - Text is upper case only (a 5x7 font); a character without a glyph is skipped.
 

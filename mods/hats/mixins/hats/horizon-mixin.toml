@@ -137,7 +137,7 @@ bindings = [
   { name = "pressed", ty = "bool", value = "pressed" },
 ]
 
-# HatsScreen on the Advancements screen (TRADUCATOR 2.24).
+# HatsScreen on the Advancements screen.
 [[injection]]
 id = "menu-draw"
 kind = "HEAD"

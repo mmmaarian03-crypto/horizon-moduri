@@ -4290,7 +4290,7 @@ use std::rc::Rc;
 /// Used by kit_state for `<world>/data/<MOD_ID>/`.
 const MOD_ID: &str = "ae2";
 /// The cable bus while one of its parts emits redstone (template `minecraft:trapped_chest`, the only
-/// kind of state Horizon asks for a signal per position: forja FUNDATIE-FORJA.md "Redstone").
+/// kind of state Horizon asks for a signal per position: mods/forja/API.md section 11, "Redstone").
 const CABLE_BUS_SIGNAL: &str = "ae2:cable_bus_signal";
 /// The AE2 windows of guests (single player's window, LAN friends) as forja menus.
 const AE2_MENU: &str = "ae2:window";
@@ -9900,7 +9900,7 @@ impl engine::Mounts for ChestCellMount<'_> {
 }
 
 // ---------------------------------------------------------------------------------------------
-// AE2 windows for guests (forja menus, forja FUNDATIE-FORJA.md "Rețea mod"). Single player's window
+// AE2 windows for guests (forja menus, forja's mod networking, mods/forja/API.md section 10). Single player's window
 // is a guest of its integrated server, as LAN friends are: the server keeps each guest's `Window`
 // apart (`GUESTS`) and puts it in `Rt::window` for the guest's turns (`ae2_menu_enter` / `_leave`),
 // so every handler of this file runs unchanged as the guest; forja mirrors the window's temporary

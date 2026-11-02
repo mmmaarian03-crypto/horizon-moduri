@@ -1,6 +1,6 @@
 // Curios API inside Horizon's game (nightly 142388e1c). The rules are the engine (src/lib.rs); this
 // part reads the game. It is also the shared API other native mods call (`crate::game::curios::...`,
-// see FUNDATIE-CURIOS.md); the Curios screen is a forja menu (crate::game::forja, FUNDATIE-FORJA.md
+// see its README); the Curios screen is a forja menu (crate::game::forja, mods/forja/API.md
 // section 10), so this mod needs forja in the same build.
 #[allow(unused_imports)]
 use super::{Game, Result, Screen, lan::LanHost};
@@ -47,7 +47,7 @@ pub mod config {
     // ---- config/curios-common.toml
     /// slots (curios-common.toml:4): the pack's list is empty.
     pub const SLOTS: &[&str] = &[];
-    // ---- saves/Prima lume/serverconfig/curios-server.toml
+    // ---- saves/<world>/serverconfig/curios-server.toml
     /// keepCurios (curios-server.toml:6): ON / DEFAULT / OFF.
     pub const KEEP_CURIOS: &str = "DEFAULT";
     /// menu.enableLegacyMenu (curios-server.toml:11): false = CuriosContainerV2 / CuriosScreenV2.
@@ -2491,7 +2491,7 @@ pub(in crate::game) struct CurioItem {
     pub fortune: Option<CurioLevelFn>,
     pub looting: Option<CurioLevelFn>,
     /// `makesPiglinsNeutral` (default: a piglin-safe armour item). `isEnderMask` and
-    /// `canWalkOnPowderedSnow` are kept for the consumers but not wired yet (FUNDATIE-CURIOS.md 7);
+    /// `canWalkOnPowderedSnow` are kept for the consumers but not wired yet (listed in its README);
     /// worn freeze immunity is the `freeze_immune_wearables` tag.
     pub piglin_neutral: Option<CurioTestFn>,
     pub ender_mask: Option<CurioTestFn>,
